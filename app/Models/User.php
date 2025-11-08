@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -44,5 +45,40 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function createdPurchaseReceipts()
+    {
+        return $this->hasMany(PurchaseReceipt::class, 'created_by');
+    }
+
+    public function updatedPurchaseReceipts()
+    {
+        return $this->hasMany(PurchaseReceipt::class, 'updated_by');
+    }
+
+    public function createdReceiptItems()
+    {
+        return $this->hasMany(ReceiptItem::class, 'created_by');
+    }
+
+    public function createdSortingResults()
+    {
+        return $this->hasMany(SortingResult::class, 'created_by');
+    }
+
+    public function createdInventoryTransactions()
+    {
+        return $this->hasMany(InventoryTransaction::class, 'created_by');
+    }
+
+    public function createdSales()
+    {
+        return $this->hasMany(Sale::class, 'created_by');
+    }
+
+    public function createdStockTransfers()
+    {
+        return $this->hasMany(StockTransfer::class, 'created_by');
     }
 }
