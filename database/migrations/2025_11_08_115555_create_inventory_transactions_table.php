@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('location_id')->constrained('locations')->cascadeOnDelete();
             $table->decimal('quantity_change_grams', 10, 2);
             $table->string('transaction_type');
-            $table->int('reference_id')->nullable();
+            $table->integer('reference_id')->nullable();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
