@@ -9,10 +9,13 @@ class GradeSupplier extends Model
 {
     use HasFactory;
 
+    protected $table = 'grades_supplier';
+
     protected $fillable = [
         'name',
         'image_url',
-        'description'];
+        'description'
+    ];
 
     public function receiptItems()
     {

@@ -3,7 +3,9 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Master\LocationController;
+use App\Models\GradeSupplier;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Master\GradeSupplierController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -16,6 +18,7 @@ Route::middleware(['auth'])->group(function () {
     Route::group(['prefix' => 'admin'], function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::resource('locations', LocationController::class);
+        Route::resource('grade-supplier', GradeSupplierController::class);
 
     });
 

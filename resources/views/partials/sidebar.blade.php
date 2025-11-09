@@ -13,16 +13,16 @@
     </div>
 
     <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        
+
         @php
             // Helper untuk active state
             $isDashboard = request()->routeIs('dashboard');
             $isBarangMasuk = request()->routeIs('barang-masuk.*');
             $isGrading = request()->routeIs('grading.*');
             $isBarangKeluar = request()->routeIs('barang-keluar.*');
-            
+
             $isMasterSupplier = request()->routeIs('supplier.*');
-            $isMasterGradeSupplier = request()->routeIs('grading-supplier.*');
+            $isMasterGradeSupplier = request()->routeIs('grade-supplier.*');
             $isMasterGradeCompany = request()->routeIs('grading-perusahaan.*');
             $isMasterLokasi = request()->routeIs('locations.*');
         @endphp
@@ -70,7 +70,7 @@
             <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
                 Master Data
             </h3>
-            
+
             <div class="space-y-2">
                 <!-- Data Supplier -->
                 <a href="" class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
@@ -82,7 +82,7 @@
                 </a>
 
                 <!-- Grading Supplier -->
-                <a href="}}" class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
+                <a href="{{ route('grade-supplier.index') }}" class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                     {{ $isMasterGradeSupplier ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
                     <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
@@ -110,7 +110,7 @@
                 </a>
 
                 <!-- Logout -->
-                <a href="{{ route('logout') }}" 
+                <a href="{{ route('logout') }}"
                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group text-red-600 hover:bg-red-50 hover:text-red-700">
                      <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
