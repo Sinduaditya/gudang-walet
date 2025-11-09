@@ -28,7 +28,7 @@
                 <!-- Nama -->
                 <div class="mb-6">
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nama Perusahaan <span class="text-red-500">*</span>
+                        Nama Grade Perusahaan <span class="text-red-500">*</span>
                     </label>
                     <input type="text"
                            name="name"
@@ -45,7 +45,7 @@
                 <!-- Gambar -->
                 <div class="mb-6">
                     <label for="image_url" class="block text-sm font-medium text-gray-700 mb-2">
-                        Gambar Perusahaan
+                        Gambar Grade Perusahaan
                     </label>
 
                     @if($gradeCompany->image_url)

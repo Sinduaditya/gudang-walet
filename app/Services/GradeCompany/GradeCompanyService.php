@@ -3,14 +3,10 @@
 namespace App\Services\GradeCompany;
 
 use App\Models\GradeCompany;
+use Illuminate\Support\Facades\Storage;
 
 class GradeCompanyService
 {
-    // public function getAll()
-    // {
-    //     return GradeCompany::latest()->paginate(10);
-    // }
-
     public function getAll(?string $search = null)
     {
         $query = GradeCompany::query();
@@ -18,7 +14,7 @@ class GradeCompanyService
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -39,15 +35,18 @@ class GradeCompanyService
     {
         $gradeCompany = $this->getById($id);
         $gradeCompany->update($data);
-
         return $gradeCompany;
     }
 
     public function delete(int $id)
     {
         $gradeCompany = $this->getById($id);
-        $gradeCompany->delete();
 
+        if ($gradeCompany->image && Storage::disk('public')->exists($gradeCompany->image)) {
+            Storage::disk('public')->delete($gradeCompany->image);
+        }
+
+        $gradeCompany->delete();
         return true;
     }
 }

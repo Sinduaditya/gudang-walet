@@ -90,6 +90,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Grade</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Dibuat</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -100,6 +101,13 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $gradeCompany->firstItem() + $index }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $grade->name }}</td>
+                            <td class="px-6 py-4">
+                                @if($grade->image_url)
+                                    <img src="{{ asset('storage/' . $grade->image_url) }}" alt="{{ $grade->name }}" class="w-8 object-cover rounded">
+                                @else
+                                    <span class="text-gray-400 text-sm">Tidak ada gambar</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $grade->description ?? '-' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $grade->created_at?->format('d M Y') ?? '-' }}</td>
                             <td class="px-6 py-4 text-center text-sm">

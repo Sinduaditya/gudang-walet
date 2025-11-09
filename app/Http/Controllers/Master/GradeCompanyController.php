@@ -2,26 +2,20 @@
 
 namespace App\Http\Controllers\Master;
 
-use App\Models\GradeCompany;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\GradeCompany\GradeCompanyService;
 use App\Http\Requests\GradeCompany\GradeCompanyRequest;
+use Illuminate\Support\Facades\Storage;
 
 class GradeCompanyController extends Controller
 {
-    protected $GradeCompanyService;
+    protected GradeCompanyService $GradeCompanyService;
 
     public function __construct(GradeCompanyService $GradeCompanyService)
     {
         $this->GradeCompanyService = $GradeCompanyService;
     }
-
-    // public function index()
-    // {
-    //     $gradeCompany = $this->GradeCompanyService->getAll();
-    //     return view('admin.grade-company.index', compact('gradeCompany'));
-    // }
 
     public function index(Request $request)
     {
@@ -38,7 +32,14 @@ class GradeCompanyController extends Controller
 
     public function store(GradeCompanyRequest $request)
     {
-        $this->GradeCompanyService->create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('image_url')) {
+            $path = $request->file('image_url')->store('grade-company', 'public');
+            $data['image_url'] = $path;
+        }
+
+        $this->GradeCompanyService->create($data);
         return redirect()->route('grade-company.index')->with('success', 'Grade company berhasil ditambahkan.');
     }
 
@@ -50,7 +51,19 @@ class GradeCompanyController extends Controller
 
     public function update(GradeCompanyRequest $request, int $id)
     {
-        $this->GradeCompanyService->update($id, $request->validated());
+        $data = $request->validated();
+        $gradeCompany = $this->GradeCompanyService->getById($id);
+
+        if ($request->hasFile('image_url')) {
+            if ($gradeCompany->image_url && Storage::disk('public')->exists($gradeCompany->image_url)) {
+                Storage::disk('public')->delete($gradeCompany->image_url);
+            }
+
+            $path = $request->file('image_url')->store('grade-company', 'public');
+            $data['image_url'] = $path;
+        }
+
+        $this->GradeCompanyService->update($id, $data);
         return redirect()->route('grade-company.index')->with('success', 'Grade company berhasil diperbarui.');
     }
 
