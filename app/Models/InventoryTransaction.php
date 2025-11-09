@@ -9,6 +9,8 @@ class InventoryTransaction extends Model
 {
     use HasFactory;
 
+    protected $table = 'inventory_transactions';
+
     protected $fillable = [
         'transaction_date',
         'grade_company_id',

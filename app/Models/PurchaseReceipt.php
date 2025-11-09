@@ -9,6 +9,8 @@ class PurchaseReceipt extends Model
 {
     use HasFactory;
 
+    protected $table = 'purchase_receipts';
+
     protected $fillable = [
         'supplier_id',
         'receipt_date',

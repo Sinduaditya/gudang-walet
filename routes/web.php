@@ -1,8 +1,10 @@
 <?php
 
-use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Master\LocationController;
+use App\Http\Controllers\Master\GradeCompanyController;
 use App\Http\Controllers\Master\SupplierController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +19,7 @@ Route::middleware(['auth'])->group(function () {
     Route::group(['prefix' => 'admin'], function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::resource('locations', LocationController::class);
+        Route::resource('grade-company', GradeCompanyController::class);
         Route::resource('suppliers', SupplierController::class);
     });
 
