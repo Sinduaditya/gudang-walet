@@ -5,6 +5,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Master\LocationController;
 use App\Http\Controllers\Master\GradeCompanyController;
+use App\Http\Controllers\Master\SupplierController;
+use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -18,6 +20,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::resource('locations', LocationController::class);
         Route::resource('grade-company', GradeCompanyController::class);
+        Route::resource('suppliers', SupplierController::class);
     });
 
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
