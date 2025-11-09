@@ -23,7 +23,7 @@
 
             $isMasterSupplier = request()->routeIs('supplier.*');
             $isMasterGradeSupplier = request()->routeIs('grading-supplier.*');
-            $isMasterGradeCompany = request()->routeIs('grading-perusahaan.*');
+            $isMasterGradeCompany = request()->routeIs('grade-company.*');
             $isMasterLokasi = request()->routeIs('locations.*');
         @endphp
 

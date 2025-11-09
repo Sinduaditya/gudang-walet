@@ -175,6 +175,12 @@
         });
     }
 
+    // Export to Excel (placeholder)
+    function exportExcel() {
+        alert('Fitur export Excel akan segera tersedia');
+        // Implement actual export logic here
+    }
+
     // Modal delete
     function confirmDelete(id, name) {
         const baseUrl = `{{ route('grade-company.destroy', ':id') }}`;
