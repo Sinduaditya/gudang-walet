@@ -9,6 +9,8 @@ class StockTransfer extends Model
 {
     use HasFactory;
 
+    protected $table = 'stock_transfers';
+
     protected $fillable = [
         'transfer_date',
         'grade_company_id',

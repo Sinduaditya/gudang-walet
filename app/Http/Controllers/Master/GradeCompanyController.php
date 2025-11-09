@@ -2,10 +2,61 @@
 
 namespace App\Http\Controllers\Master;
 
-use App\Http\Controllers\Controller;
+use App\Models\GradeCompany;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Services\GradeCompany\GradeCompanyService;
+use App\Http\Requests\GradeCompany\GradeCompanyRequest;
 
 class GradeCompanyController extends Controller
 {
-    //
+    protected $GradeCompanyService;
+
+    public function __construct(GradeCompanyService $GradeCompanyService)
+    {
+        $this->GradeCompanyService = $GradeCompanyService;
+    }
+
+    // public function index()
+    // {
+    //     $gradeCompany = $this->GradeCompanyService->getAll();
+    //     return view('admin.grade-company.index', compact('gradeCompany'));
+    // }
+
+    public function index(Request $request)
+    {
+        $search = $request->input('search');
+        $gradeCompany = $this->GradeCompanyService->getAll($search);
+
+        return view('admin.grade-company.index', compact('gradeCompany', 'search'));
+    }
+
+    public function create()
+    {
+        return view('admin.grade-company.create');
+    }
+
+    public function store(GradeCompanyRequest $request)
+    {
+        $this->GradeCompanyService->create($request->validated());
+        return redirect()->route('grade-company.index')->with('success', 'Grade company berhasil ditambahkan.');
+    }
+
+    public function edit(int $id)
+    {
+        $gradeCompany = $this->GradeCompanyService->getById($id);
+        return view('admin.grade-company.edit', compact('gradeCompany'));
+    }
+
+    public function update(GradeCompanyRequest $request, int $id)
+    {
+        $this->GradeCompanyService->update($id, $request->validated());
+        return redirect()->route('grade-company.index')->with('success', 'Grade company berhasil diperbarui.');
+    }
+
+    public function destroy(int $id)
+    {
+        $this->GradeCompanyService->delete($id);
+        return redirect()->route('grade-company.index')->with('success', 'Grade company berhasil dihapus.');
+    }
 }

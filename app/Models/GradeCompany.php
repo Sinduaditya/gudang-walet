@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class GradeCompany extends Model
 {
-     use HasFactory;
+    use HasFactory;
+
+    protected $table = 'grades_company';
 
     protected $fillable = [
         'name',
