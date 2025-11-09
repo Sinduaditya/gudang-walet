@@ -7,6 +7,7 @@ use App\Http\Controllers\Master\LocationController;
 use App\Http\Controllers\Master\GradeCompanyController;
 use App\Http\Controllers\Master\SupplierController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Master\GradeSupplierController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -19,6 +20,7 @@ Route::middleware(['auth'])->group(function () {
     Route::group(['prefix' => 'admin'], function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::resource('locations', LocationController::class);
+<       Route::resource('grade-supplier', GradeSupplierController::class);
         Route::resource('grade-company', GradeCompanyController::class);
         Route::resource('suppliers', SupplierController::class);
     });

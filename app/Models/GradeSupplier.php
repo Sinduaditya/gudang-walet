@@ -14,7 +14,8 @@ class GradeSupplier extends Model
     protected $fillable = [
         'name',
         'image_url',
-        'description'];
+        'description'
+    ];
 
     public function receiptItems()
     {
