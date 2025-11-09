@@ -9,6 +9,8 @@ class ReceiptItem extends Model
 {
     use HasFactory;
 
+    protected $table = 'receipt_items';
+
     protected $fillable = [
         'receipt_id',
         'grade_supplier_id',
