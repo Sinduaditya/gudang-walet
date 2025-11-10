@@ -43,8 +43,8 @@
             @endif
 
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <form method="GET" action="{{ route('grade-supplier.index') }}"
-                    class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <!-- Search Section -->
                     <div class="flex-1 max-w-md">
                         <label class="flex items-center text-sm text-gray-600 mb-2">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,20 +53,22 @@
                             </svg>
                             Cari Grade Supplier
                         </label>
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Cari berdasarkan nama atau deskripsi..."
+                        <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau deskripsi..."
+                            onkeyup="searchTable()"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                     </div>
-                    <div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-2">
                         <a href="{{ route('grade-supplier.create') }}"
-                            class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">
+                            class="flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
                             Tambah Grade Supplier
                         </a>
                     </div>
-                </form>
+                </div>
             </div>
 
             <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -167,13 +169,27 @@
     <script>
         // Search Filter
         function searchTable() {
-            const input = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#gradeSupplierTable tbody tr');
-            rows.forEach(row => {
-                const name = row.cells[1]?.innerText.toLowerCase() || '';
-                const desc = row.cells[2]?.innerText.toLowerCase() || '';
-                row.style.display = name.includes(input) || desc.includes(input) ? '' : 'none';
-            });
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('gradeSupplierTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                const tdName = tr[i].getElementsByTagName('td')[1];
+                const tdDesc = tr[i].getElementsByTagName('td')[3];
+
+                if (tdName && tdDesc) {
+                    const nameValue = tdName.textContent || tdName.innerText;
+                    const descValue = tdDesc.textContent || tdDesc.innerText;
+
+                    if (nameValue.toLowerCase().indexOf(filter) > -1 ||
+                        descValue.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = '';
+                    } else {
+                        tr[i].style.display = 'none';
+                    }
+                }
+            }
         }
 
         // Export to Excel (placeholder)

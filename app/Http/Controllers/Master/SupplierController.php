@@ -21,6 +21,14 @@ class SupplierController extends Controller
         return view('admin.suppliers.index', compact('suppliers'));
     }
 
+    public function export(){
+        try {
+            return $this->supplierService->exportToExcel();
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengekspor data: ' . $e->getMessage());
+        }
+    }
+
     public function create()
     {
         return view('admin.suppliers.create');

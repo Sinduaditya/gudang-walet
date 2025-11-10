@@ -4,6 +4,9 @@ namespace App\Services\Supplier;
 
 use App\Models\Supplier;
 
+use App\Exports\SuppliersExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 class SupplierService
 {
     /**
@@ -13,6 +16,16 @@ class SupplierService
     {
         return Supplier::latest()->paginate(10); 
     }
+
+    /**
+     * Export All Suppliers
+     * 
+     */
+
+    public function exportToExcel(){
+        return Excel::download(new SuppliersExport, 'suppliers-' . date('Y-m-d') . '.xlsx');
+    }
+
 
     /**
      * Get a single supplier by ID.
