@@ -29,6 +29,18 @@ class LocationController extends Controller
     }
 
     /**
+     * Export locations to Excel.
+     */
+    public function export()
+    {
+        try {
+            return $this->locationService->exportToExcel(); 
+        } catch (\Throwable $th) {
+            return back()->with('error', 'Gagal mengekspor data lokasi: ' . $th->getMessage());
+        }       
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

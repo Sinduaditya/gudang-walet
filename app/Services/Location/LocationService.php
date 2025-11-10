@@ -2,7 +2,9 @@
 
 namespace App\Services\Location;
 
+use App\Exports\LocationExport;
 use App\Models\Location;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LocationService
 {
@@ -13,6 +15,16 @@ class LocationService
     {
         return Location::latest()->paginate(10); 
     }
+
+    /**
+     * Export Location to Excel
+     * 
+     */
+    public function exportToExcel(){
+        return Excel::download(new LocationExport, 'locations-' . date('Y-m-d') . '.xlsx');
+    }
+
+
 
     /**
      * Get a single location by ID.

@@ -1,6 +1,7 @@
 <!-- filepath: resources/views/layouts/app.blade.php -->
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,6 +14,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="font-sans antialiased bg-gray-50">
     <div class="min-h-screen flex">
         <!-- Desktop Sidebar -->
@@ -23,10 +25,12 @@
         </div>
 
         <!-- Mobile Overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity duration-300"></div>
-        
+        <div id="sidebar-overlay"
+            class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden transition-opacity duration-300"></div>
+
         <!-- Mobile Sidebar -->
-        <div id="mobile-sidebar" class="fixed left-0 top-0 z-50 h-full w-64 bg-white shadow-lg transform -translate-x-full sidebar-transition md:hidden">
+        <div id="mobile-sidebar"
+            class="fixed left-0 top-0 z-50 h-full w-64 bg-white shadow-lg transform -translate-x-full sidebar-transition md:hidden">
             <div class="sidebar-scroll h-full overflow-y-auto">
                 @include('partials.sidebar')
             </div>
@@ -52,22 +56,22 @@
             const mobileSidebar = document.getElementById('mobile-sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             const closeSidebarBtn = document.getElementById('close-sidebar');
-            
+
             function openSidebar() {
                 mobileSidebar.classList.remove('-translate-x-full');
                 overlay.classList.remove('hidden');
                 document.body.classList.add('overflow-hidden');
-                
+
                 setTimeout(() => {
                     overlay.classList.add('opacity-100');
                 }, 10);
             }
-            
+
             function closeSidebar() {
                 overlay.classList.remove('opacity-100');
                 mobileSidebar.classList.add('-translate-x-full');
                 document.body.classList.remove('overflow-hidden');
-                
+
                 setTimeout(() => {
                     overlay.classList.add('hidden');
                 }, 300);
@@ -83,23 +87,52 @@
             if (overlay) {
                 overlay.addEventListener('click', closeSidebar);
             }
-            
+
             if (closeSidebarBtn) {
                 closeSidebarBtn.addEventListener('click', closeSidebar);
             }
-            
+
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && !mobileSidebar.classList.contains('-translate-x-full')) {
                     closeSidebar();
                 }
             });
-            
+
             window.addEventListener('resize', function() {
                 if (window.innerWidth >= 768) {
                     closeSidebar();
                 }
             });
+
+
+            function showModal(modalId) {
+                document.getElementById(modalId).classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal(modalId) {
+                document.getElementById(modalId).classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+
+            // Auto hide toasts
+            document.addEventListener('DOMContentLoaded', function() {
+                const toasts = document.querySelectorAll('[id^="toast-"]');
+                if (toasts.length > 0) {
+                    setTimeout(() => {
+                        toasts.forEach(toast => {
+                            if (toast) {
+                                toast.style.opacity = '0';
+                                toast.style.transition = 'opacity 0.5s ease-out';
+                                setTimeout(() => toast.remove(), 500);
+                            }
+                        });
+                    }, 5000);
+                }
+            });
         });
     </script>
+    @stack('scripts')
 </body>
+
 </html>

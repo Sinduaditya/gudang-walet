@@ -20,6 +20,11 @@ class PurchaseReceipt extends Model
         'updated_by',
     ];
 
+    protected $casts = [
+        'receipt_date' => 'date',
+        'unloading_date' => 'date',
+    ];
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
