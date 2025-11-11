@@ -45,6 +45,44 @@
 
             <!-- Main Content Area -->
             <main id="main-content" class="flex-1 w-full overflow-x-hidden p-6">
+                <div class="container mx-auto px-4 mt-4">
+                    @if (session('success'))
+                        <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4" id="alert-success">
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm text-green-700">{{ session('success') }}</p>
+                                <button onclick="document.getElementById('alert-success')?.remove()"
+                                    class="text-green-500">✕</button>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4" id="alert-error">
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm text-red-700">{{ session('error') }}</p>
+                                <button onclick="document.getElementById('alert-error')?.remove()"
+                                    class="text-red-500">✕</button>
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4" id="alert-validation">
+                            <div class="flex justify-between">
+                                <div>
+                                    <p class="text-sm text-yellow-700 font-semibold">Terdapat error validasi:</p>
+                                    <ul class="mt-2 text-sm text-yellow-700 list-disc ml-5">
+                                        @foreach ($errors->all() as $err)
+                                            <li>{{ $err }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                                <button onclick="document.getElementById('alert-validation')?.remove()"
+                                    class="text-yellow-600">✕</button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
                 @yield('content')
             </main>
         </div>

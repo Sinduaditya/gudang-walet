@@ -27,12 +27,12 @@ class PurchaseReceipt extends Model
 
     public function supplier()
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 
     public function receiptItems()
     {
-        return $this->hasMany(ReceiptItem::class, 'receipt_id');
+        return $this->hasMany(ReceiptItem::class, 'purchase_receipt_id','id');
     }
 
     public function creator()

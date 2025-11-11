@@ -87,7 +87,7 @@
                                        min="0"
                                        step="1"
                                        placeholder="Masukkan berat"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                       class="w-full rounded-md border border-gray-300 py-2 px-3 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                                 @error('berat_awal.' . $grade->id)
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -107,7 +107,7 @@
                                        max="100"
                                        step="0.1"
                                        placeholder="Masukkan kadar air"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                       class="w-full rounded-md border border-gray-300 py-2 px-3 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                                 @error('kadar_air.' . $grade->id)
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror

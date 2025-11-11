@@ -17,28 +17,6 @@
             </button>
         </div>
 
-        <!-- Alert Messages -->
-        @if(session('success'))
-        <div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4" id="alert-success">
-            <div class="flex justify-between items-center">
-                <p class="text-sm text-green-700">{{ session('success') }}</p>
-                <button onclick="document.getElementById('alert-success').remove()" class="text-green-500 hover:text-green-700">
-                    ✕
-                </button>
-            </div>
-        </div>
-        @endif
-
-        @if(session('error'))
-        <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4" id="alert-error">
-            <div class="flex justify-between items-center">
-                <p class="text-sm text-red-700">{{ session('error') }}</p>
-                <button onclick="document.getElementById('alert-error').remove()" class="text-red-500 hover:text-red-700">
-                    ✕
-                </button>
-            </div>
-        </div>
-        @endif
 
         {{-- <!-- Search Section -->
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">

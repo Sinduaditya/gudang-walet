@@ -19,39 +19,6 @@
                 </a>
             </div>
 
-            <!-- Alert Messages -->
-            @if (session('success'))
-                <div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4" id="alert-success">
-                    <div class="flex justify-between items-center">
-                        <p class="text-sm text-green-700">{{ session('success') }}</p>
-                        <button onclick="document.getElementById('alert-success').remove()"
-                            class="text-green-500 hover:text-green-700">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4" id="alert-error">
-                    <div class="flex justify-between items-center">
-                        <p class="text-sm text-red-700">{{ session('error') }}</p>
-                        <button onclick="document.getElementById('alert-error').remove()"
-                            class="text-red-500 hover:text-red-700">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            @endif
-
             <!-- Filter and Actions Section -->
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                 <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">

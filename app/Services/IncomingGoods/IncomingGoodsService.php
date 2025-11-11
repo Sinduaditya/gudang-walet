@@ -13,7 +13,7 @@ class IncomingGoodsService
 {
     public function getAllReceipts()
     {
-        return PurchaseReceipt::with(['supplier', 'receiptItems'])
+        return PurchaseReceipt::with(['supplier', 'receiptItems.gradeSupplier'])
             ->latest('receipt_date')
             ->paginate(15);
     }
@@ -80,12 +80,12 @@ class IncomingGoodsService
                     $isFlagged = ($selisih != 0);
 
                     ReceiptItem::create([
-                        'receipt_id' => $receipt->id,
+                        'purchase_receipt_id' => $receipt->id,
                         'grade_supplier_id' => $gradeId,
                         'supplier_weight_grams' => $beratAwal,
                         'warehouse_weight_grams' => $beratAkhir,
                         'difference_grams' => $selisih,
-                        'moisture_percent' => $kadarAir,
+                        'moisture_percentage' => $kadarAir,
                         'is_flagged_red' => $isFlagged,
                         'status' => 'received',
                         'created_by' => auth()->id(),
@@ -97,6 +97,27 @@ class IncomingGoodsService
             });
         } catch (Exception $e) {
             throw new Exception('Gagal menyimpan data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete purchase receipt and its items
+     */
+    public function deleteReceipt($id)
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $receipt = PurchaseReceipt::findOrFail($id);
+
+                // delete related items (if cascade not configured)
+                $receipt->receiptItems()->delete();
+
+                $receipt->delete();
+
+                return true;
+            });
+        } catch (Exception $e) {
+            throw new Exception('Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
