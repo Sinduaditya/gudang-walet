@@ -12,21 +12,29 @@ class ReceiptItem extends Model
     protected $table = 'receipt_items';
 
     protected $fillable = [
-        'receipt_id',
+        'purchase_receipt_id',
         'grade_supplier_id',
         'supplier_weight_grams',
         'warehouse_weight_grams',
         'difference_grams',
-        'moisture_percent',
+        'moisture_percentage',
         'is_flagged_red',
         'status',
         'created_by',
         'updated_by',
     ];
 
+    protected $casts = [
+        'supplier_weight_grams' => 'integer',
+        'warehouse_weight_grams' => 'integer',
+        'difference_grams' => 'integer',
+        'moisture_percentage' => 'float',
+        'is_flagged_red' => 'boolean',
+    ];
+
     public function receipt()
     {
-        return $this->belongsTo(PurchaseReceipt::class, 'receipt_id');
+        return $this->belongsTo(PurchaseReceipt::class, 'purchase_receipt_id');
     }
 
     public function gradeSupplier()

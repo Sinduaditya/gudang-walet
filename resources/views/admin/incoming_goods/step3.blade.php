@@ -49,7 +49,7 @@
 
         <form action="{{ route('incoming-goods.store-final') }}" method="POST">
             @csrf
-
+ incoming-goods.store-final
             <!-- Grade Cards -->
             <div class="bg-white rounded-lg shadow-sm border mb-6">
                 <div class="px-6 py-4 border-b">
@@ -104,7 +104,7 @@
                                        step="1"
                                        placeholder="Masukkan berat"
                                        onkeyup="calculateDifference({{ $grade->id }}, {{ $step2Data['berat_awal'][$grade->id] ?? 0 }})"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                       class="w-full rounded-md py-2 px-3 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                                 @error('berat_akhir.' . $grade->id)
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
