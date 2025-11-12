@@ -41,7 +41,8 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Bongkar</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Jumlah Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat (kg)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat (Gram)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
                         </thead>
@@ -57,6 +58,32 @@
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $receipt->receiptItems->count() }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ number_format($receipt->receiptItems->sum('warehouse_weight_grams') / 1000, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        @php
+                                            $mentahCount = $receipt->receiptItems->where('status', 'mentah')->count();
+                                            $selesaiCount = $receipt->receiptItems
+                                                ->where('status', 'selesai_disortir')
+                                                ->count();
+                                            $totalCount = $receipt->receiptItems->count();
+                                        @endphp
+
+                                        @if ($selesaiCount === $totalCount)
+                                            <span
+                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Selesai Disortir
+                                            </span>
+                                        @elseif($mentahCount === $totalCount)
+                                            <span
+                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                Siap Digrading
+                                            </span>
+                                        @else
+                                            <span
+                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                Sebagian Disortir
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         <div class="flex items-center gap-2">

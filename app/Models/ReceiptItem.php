@@ -11,6 +11,10 @@ class ReceiptItem extends Model
 
     protected $table = 'receipt_items';
 
+    // Status constants untuk alur kerja
+    const STATUS_MENTAH = 'mentah';
+    const STATUS_SELESAI_DISORTIR = 'selesai_disortir';
+
     protected $fillable = [
         'purchase_receipt_id',
         'grade_supplier_id',
@@ -42,11 +46,6 @@ class ReceiptItem extends Model
         return $this->belongsTo(GradeSupplier::class, 'grade_supplier_id');
     }
 
-    public function sortingResults()
-    {
-        return $this->hasMany(SortingResult::class);
-    }
-
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -55,5 +54,27 @@ class ReceiptItem extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // Helper methods untuk status
+    public function isMentah()
+    {
+        return $this->status === self::STATUS_MENTAH;
+    }
+
+    public function isSelesaiDisortir()
+    {
+        return $this->status === self::STATUS_SELESAI_DISORTIR;
+    }
+
+    // Scope untuk query berdasarkan status
+    public function scopeMentah($query)
+    {
+        return $query->where('status', self::STATUS_MENTAH);
+    }
+
+    public function scopeSelesaiDisortir($query)
+    {
+        return $query->where('status', self::STATUS_SELESAI_DISORTIR);
     }
 }

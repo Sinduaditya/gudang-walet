@@ -87,7 +87,7 @@ class IncomingGoodsService
                         'difference_grams' => $selisih,
                         'moisture_percentage' => $kadarAir,
                         'is_flagged_red' => $isFlagged,
-                        'status' => 'received',
+                        'status' => ReceiptItem::STATUS_MENTAH,
                         'created_by' => auth()->id(),
                         'updated_by' => auth()->id(),
                     ]);
