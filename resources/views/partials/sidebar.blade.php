@@ -18,7 +18,7 @@
             // Helper untuk active state
             $isDashboard = request()->routeIs('dashboard');
             $isBarangMasuk = request()->routeIs('incoming-goods.*');
-            $isGrading = request()->routeIs('grading.*');
+            $isGrading = request()->routeIs('grading-goods.*');
             $isBarangKeluar = request()->routeIs('barang-keluar.*');
             $isMasterGradeCompany = request()->routeIs('grade-company.*');
             $isMasterSupplier = request()->routeIs('suppliers.*');
@@ -52,7 +52,7 @@
 
 
         <!-- Manajemen Grading -->
-        <a href=""
+        <a href="{{ route('grading-goods.index') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isGrading ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

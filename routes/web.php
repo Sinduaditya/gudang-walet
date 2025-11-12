@@ -1,13 +1,14 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Feature\IncomingGoodsController;
 use App\Http\Controllers\Master\LocationController;
-use App\Http\Controllers\Master\GradeCompanyController;
 use App\Http\Controllers\Master\SupplierController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Master\GradeCompanyController;
+use App\Http\Controllers\Feature\GradingGoodsController;
 use App\Http\Controllers\Master\GradeSupplierController;
+use App\Http\Controllers\Feature\IncomingGoodsController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -29,19 +30,24 @@ Route::middleware(['auth'])->group(function () {
         // Step 1
         Route::get('step-1', [IncomingGoodsController::class, 'createStep1'])->name('step1');
         Route::post('step-1', [IncomingGoodsController::class, 'storeStep1'])->name('store-step1');
-        
+
         // Step 2
         Route::get('step-2', [IncomingGoodsController::class, 'createStep2'])->name('step2');
         Route::post('step-2', [IncomingGoodsController::class, 'storeStep2'])->name('store-step2');
-        
+
         // Step 3
         Route::get('step-3', [IncomingGoodsController::class, 'createStep3'])->name('step3');
         Route::post('step-3', [IncomingGoodsController::class, 'storeFinal'])->name('store-final');
-        
+
         // Show & Cancel
         Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show');
         Route::get('cancel', [IncomingGoodsController::class, 'cancel'])->name('cancel');
     });
+
+         //Grading Goods Routes
+        Route::prefix('grading-goods')->name('grading-goods.')->group(function () {
+            Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
+        });
 
         // Export Data Master to Excel
         Route::get('suppliers/export', [SupplierController::class, 'export'])->name('suppliers.export');

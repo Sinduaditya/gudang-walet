@@ -12,7 +12,10 @@ class SortingResult extends Model
     protected $table = 'sorting_results';
 
     protected $fillable = [
-        'receipt_item_id', 'grade_company_id', 'weight_grams', 'created_by'
+        'receipt_item_id',
+        'grade_company_id',
+        'weight_grams',
+        'created_by'
     ];
 
     public function receiptItem()
