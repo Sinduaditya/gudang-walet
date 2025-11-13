@@ -96,13 +96,13 @@
                             <!-- Kadar Air Input -->
                             <div>
                                 <label for="kadar_air_{{ $grade->id }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Kadar Air (%) <span class="text-red-500">*</span>
+                                    Kadar Air (%) 
                                 </label>
                                 <input type="number" 
                                        name="kadar_air[{{ $grade->id }}]" 
                                        id="kadar_air_{{ $grade->id }}"
                                        value="{{ old('kadar_air.' . $grade->id) }}"
-                                       required
+                                       {{-- required --}}
                                        min="0"
                                        max="100"
                                        step="0.1"
