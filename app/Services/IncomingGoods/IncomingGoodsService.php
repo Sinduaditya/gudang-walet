@@ -2,12 +2,15 @@
 
 namespace App\Services\IncomingGoods;
 
+use App\Exports\IncomingGoodsExport;
 use App\Models\PurchaseReceipt;
 use App\Models\ReceiptItem;
 use App\Models\Supplier;
 use App\Models\GradeSupplier;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 
 class IncomingGoodsService
 {
@@ -15,7 +18,7 @@ class IncomingGoodsService
     {
         return PurchaseReceipt::with(['supplier', 'receiptItems.gradeSupplier'])
             ->latest('receipt_date')
-            ->paginate(15);
+            ->paginate(10);
     }
 
     /**
@@ -74,10 +77,10 @@ class IncomingGoodsService
                     $beratAkhir = $step3Data['berat_akhir'][$gradeId] ?? 0;
 
                     // Calculate difference
-                    $selisih = $beratAwal - $beratAkhir;
-                    
+                    $selisih = $beratAkhir - $beratAwal;
+
                     // Flag if there's any difference
-                    $isFlagged = ($selisih != 0);
+                    $isFlagged = $selisih != 0;
 
                     ReceiptItem::create([
                         'purchase_receipt_id' => $receipt->id,
@@ -127,5 +130,19 @@ class IncomingGoodsService
     public function clearWizardSession()
     {
         session()->forget(['step1_data', 'step2_data']);
+    }
+
+    /**
+     * Export Location to Excel
+     *
+     */
+    public function exportToExcel()
+    {
+        try {
+            return Excel::download(new IncomingGoodsExport(), 'incoming-goods-' . date('Y-m-d') . '.xlsx');
+        } catch (\Exception $e) {
+            Log::error('Export failed: ' . $e->getMessage());
+            throw new Exception('Gagal mengekspor data: ' . $e->getMessage());
+        }
     }
 }

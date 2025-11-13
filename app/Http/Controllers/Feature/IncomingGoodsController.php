@@ -158,4 +158,27 @@ class IncomingGoodsController extends Controller
         return redirect()->route('dashboard')
             ->with('info', 'Input barang masuk dibatalkan');
     }
+
+    /** 
+     * Delete purchase receipt
+     */
+    public function destroy($id)
+    {
+        try {
+            $this->incomingGoodsService->deleteReceipt($id);
+            return redirect()->route('incoming-goods.index')
+                ->with('success', 'Data barang masuk berhasil dihapus!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
+    public function export()
+    {
+        try {
+            return $this->incomingGoodsService->exportToExcel();
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengekspor data: ' . $e->getMessage());
+        }
+    }
 }
