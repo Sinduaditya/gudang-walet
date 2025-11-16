@@ -50,12 +50,25 @@ Route::middleware(['auth'])->group(function () {
                 // Export to Excel
             });
 
-        //Grading Goods Routes
-        Route::prefix('grading-goods')
-            ->name('grading-goods.')
-            ->group(function () {
-                Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
-            });
+         //Grading Goods Routes
+        Route::prefix('grading-goods')->name('grading-goods.')->group(function () {
+            Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
+
+            // Step 1: pilih receipt_item (berdasarkan grade supplier), input grading_date
+            Route::get('step-1', [GradingGoodsController::class, 'createStep1'])->name('step1');
+            Route::post('step-1', [GradingGoodsController::class, 'storeStep1'])->name('step1.store');
+
+            // Step 2: lengkapi quantity, grade company, weight_grams, notes
+            Route::get('step-2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
+            Route::post('step-2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('step2.store');
+
+            // Edit, Update, Delete
+            Route::get('edit/{id}', [GradingGoodsController::class, 'edit'])->name('edit');
+            Route::put('update/{id}', [GradingGoodsController::class, 'update'])->name('update');
+            Route::delete('delete/{id}', [GradingGoodsController::class, 'destroy'])->name('destroy');
+
+            Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
+        });
 
         // Export Data Master to Excel
         Route::get('suppliers/export', [SupplierController::class, 'export'])->name('suppliers.export');
