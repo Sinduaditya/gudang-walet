@@ -42,10 +42,13 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('step-3', [IncomingGoodsController::class, 'createStep3'])->name('step3');
                 Route::post('step-3', [IncomingGoodsController::class, 'storeFinal'])->name('store-final');
 
-                // Show & Cancel
+                // Show & Cancel & Delete & Edit
                 Route::get('cancel', [IncomingGoodsController::class, 'cancel'])->name('cancel');
+                Route::get('{id}/edit', [IncomingGoodsController::class, 'edit'])->name('edit');
+                Route::put('{id}', [IncomingGoodsController::class, 'update'])->name('update');
                 Route::delete('{id}', [IncomingGoodsController::class, 'destroy'])->name('destroy');
-                Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show'); // pindahkan ke bawah
+                Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show'); 
+           
 
                 // Export to Excel
             });

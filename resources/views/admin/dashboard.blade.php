@@ -11,13 +11,13 @@
         
         <div class="bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center">
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m6 4v-8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2z"></path></svg>
-                </div>
-                <div class="ml-4 flex-1">
-                    <p class="text-sm font-medium text-gray-500">Barang Masuk Hari Ini</p>
-                    <p class="text-2xl font-bold text-gray-900">125 kg</p>
-                </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m6 4v-8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2h14a2 2 0 002-2z"></path></svg>
+            </div>
+            <div class="ml-4 flex-1">
+                <p class="text-sm font-medium text-gray-500">Barang Masuk Hari Ini</p>
+                <p class="text-2xl font-bold text-gray-900">125 kg</p>
+            </div>
             </div>
         </div>
 
@@ -61,29 +61,36 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Flow Masuk & Keluar (Per Hari)</h3>
-            <div class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                <p class="text-gray-500 text-sm">[Placeholder Grafik Batang]</p>
+            <div class="h-64">
+                <canvas id="flowChart"></canvas>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Barang Dikirim ke DMK (Per Hari)</h3>
-            <div class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                <p class="text-gray-500 text-sm">[Placeholder Grafik Garis]</p>
+            <div class="h-64">
+                <canvas id="dmkChart"></canvas>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Barang ke Jasa Cuci (Per Nama)</h3>
-            <div class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                <p class="text-gray-500 text-sm">[Placeholder Grafik Donat]</p>
+            <div class="h-64">
+                <canvas id="jasaCuciChart"></canvas>
             </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Barang Masuk per Supplier (Bulan Ini)</h3>
-            <div class="h-64 bg-gray-50 rounded flex items-center justify-center">
-                <p class="text-gray-500 text-sm">[Placeholder Grafik Bar Horizontal]</p>
+            <div class="h-64">
+                <canvas id="supplierChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Total Barang di Grading (Per Hari)</h3>
+            <div class="h-64">
+                <canvas id="gradingChart"></canvas>
             </div>
         </div>
     </div>
@@ -130,4 +137,113 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Flow Chart - Barang Masuk & Keluar
+    const flowCtx = document.getElementById('flowChart').getContext('2d');
+    new Chart(flowCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+            datasets: [{
+                label: 'Barang Masuk (kg)',
+                data: [120, 150, 180, 90, 200, 160, 140],
+                backgroundColor: 'rgba(59, 130, 246, 0.8)'
+            }, {
+                label: 'Barang Keluar (kg)',
+                data: [80, 120, 100, 150, 130, 110, 90],
+                backgroundColor: 'rgba(239, 68, 68, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // DMK Chart - Line Chart
+    const dmkCtx = document.getElementById('dmkChart').getContext('2d');
+    new Chart(dmkCtx, {
+        type: 'line',
+        data: {
+            labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+            datasets: [{
+                label: 'Dikirim ke DMK (kg)',
+                data: [45, 60, 55, 70, 65, 50, 40],
+                borderColor: 'rgba(34, 197, 94, 1)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Jasa Cuci Chart - Doughnut Chart
+    const jasaCuciCtx = document.getElementById('jasaCuciChart').getContext('2d');
+    new Chart(jasaCuciCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['CV Bersih', 'PT Cuci Mulia', 'Jasa Cuci Mandiri', 'CV Clean'],
+            datasets: [{
+                data: [35, 25, 20, 20],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(251, 191, 36, 0.8)',
+                    'rgba(239, 68, 68, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Supplier Chart - Horizontal Bar
+    const supplierCtx = document.getElementById('supplierChart').getContext('2d');
+    new Chart(supplierCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Supplier A', 'Supplier B', 'Supplier C', 'Supplier D', 'Supplier E'],
+            datasets: [{
+                label: 'Barang Masuk (kg)',
+                data: [450, 380, 320, 280, 250],
+                backgroundColor: 'rgba(168, 85, 247, 0.8)'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Grading Chart - Area Chart
+    const gradingCtx = document.getElementById('gradingChart').getContext('2d');
+    new Chart(gradingCtx, {
+        type: 'line',
+        data: {
+            labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+            datasets: [{
+                label: 'Grading (kg)',
+                data: [75, 85, 90, 65, 95, 80, 70],
+                borderColor: 'rgba(16, 185, 129, 1)',
+                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>
 @endsection
