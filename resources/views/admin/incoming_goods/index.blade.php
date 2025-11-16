@@ -12,14 +12,15 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('incoming-goods.export') }}"
-                        class="flex items-center text-sm text-gray-600 hover:text-gray-800">
+                    <!-- Export with Filter Button -->
+                    <button onclick="openExportModal()"
+                        class="flex items-center text-sm text-gray-600 hover:text-gray-800 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-md border border-green-200">
                         <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
                         </svg>
-                        Download as Excel
-                    </a>
+                        Export Excel
+                    </button>
 
                     <a href="{{ route('incoming-goods.step1') }}"
                         class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700">
@@ -32,6 +33,53 @@
                 </div>
             </div>
 
+            <!-- Filter Section -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <form method="GET" action="{{ route('incoming-goods.index') }}"
+                    class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- Filter Bulan -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
+                            <select name="month"
+                                class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Bulan</option>
+                                @for ($i = 1; $i <= 12; $i++)
+                                    <option value="{{ $i }}" {{ request('month') == $i ? 'selected' : '' }}>
+                                        {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+
+                        <!-- Filter Tahun -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                            <select name="year"
+                                class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Tahun</option>
+                                @for ($year = date('Y'); $year >= 2020; $year--)
+                                    <option value="{{ $year }}" {{ request('year') == $year ? 'selected' : '' }}>
+                                        {{ $year }}
+                                    </option>
+                                @endfor
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+                            Filter
+                        </button>
+                        <a href="{{ route('incoming-goods.index') }}"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+
             <div class="bg-white shadow-sm border rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -42,7 +90,8 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Bongkar</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Jumlah Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat (Gram)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat Grading (Gram)
+                                </th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
@@ -58,7 +107,7 @@
                                         {{ optional($receipt->unloading_date)->format('d/m/Y') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $receipt->receiptItems->count() }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ $receipt->receiptItems->sum('warehouse_weight_grams')  }}
+                                        {{ number_format($receipt->receiptItems->sum('warehouse_weight_grams')) }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         @php
@@ -89,15 +138,17 @@
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('incoming-goods.show', $receipt->id) }}"
-                                                class="text-blue-600">Lihat</a>
+                                                class="text-blue-600 hover:text-blue-800">Lihat</a>
+                                            <a href="{{ route('incoming-goods.edit', $receipt->id) }}"
+                                                class="text-yellow-600 hover:text-yellow-800">Edit</a>
                                             <button onclick="confirmDelete({{ $receipt->id }})"
-                                                class="text-red-600">Hapus</button>
+                                                class="text-red-600 hover:text-red-800">Hapus</button>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                         Belum ada data barang masuk.
                                     </td>
                                 </tr>
@@ -108,10 +159,51 @@
 
                 @if ($receipts->hasPages())
                     <div class="px-6 py-4 border-t border-gray-200">
-                        {{ $receipts->links() }}
+                        {{ $receipts->appends(request()->query())->links() }}
                     </div>
                 @endif
             </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="font-medium mb-4">Export Data Excel</h3>
+            <form action="{{ route('incoming-goods.export') }}" method="GET">
+                <div class="space-y-4">
+                    <!-- Filter Bulan Export -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
+                        <select name="month"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Semua Bulan</option>
+                            @for ($i = 1; $i <= 12; $i++)
+                                <option value="{{ $i }}">{{ date('F', mktime(0, 0, 0, $i, 1)) }}</option>
+                            @endfor
+                        </select>
+                    </div>
+
+                    <!-- Filter Tahun Export -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                        <select name="year"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Semua Tahun</option>
+                            @for ($year = date('Y'); $year >= 2020; $year--)
+                                <option value="{{ $year }}">{{ $year }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeExportModal()"
+                        class="flex-1 px-3 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Batal</button>
+                    <button type="submit"
+                        class="flex-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Export</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -143,6 +235,14 @@
 
             function closeDeleteModal() {
                 document.getElementById('deleteModal').classList.add('hidden');
+            }
+
+            function openExportModal() {
+                document.getElementById('exportModal').classList.remove('hidden');
+            }
+
+            function closeExportModal() {
+                document.getElementById('exportModal').classList.add('hidden');
             }
         </script>
     @endpush
