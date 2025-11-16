@@ -147,35 +147,35 @@
 @push('scripts')
 <script>
 function calculateDifference(gradeId, beratAwal) {
-    const beratAkhirInput = document.getElementById(`berat_akhir_${gradeId}`);
-    const beratAkhir = parseFloat(beratAkhirInput.value) || 0;
+    const beratAkhirInput = document.getElementById('berat_akhir_' + gradeId);
+    const selisihSpan = document.getElementById('selisih_' + gradeId);
     
-    if (beratAkhir > 0) {
-        const selisih = beratAwal - beratAkhir;
-        const selisihPercent = (Math.abs(selisih) / beratAwal) * 100;
+    if (beratAkhirInput && selisihSpan) {
+        const beratAkhir = parseFloat(beratAkhirInput.value) || 0;
+        const selisih = beratAkhir - beratAwal; // Berat Akhir - Berat Awal
         
-        const selisihDiv = document.getElementById(`selisih_${gradeId}`);
-        const selisihValue = document.getElementById(`selisih_value_${gradeId}`);
+        // Format tampilan selisih
+        let displayText = '';
+        let colorClass = '';
         
-        selisihDiv.classList.remove('hidden');
-        
-        // Format selisih display
-        const selisihText = `${selisih.toLocaleString()} gr (${selisihPercent.toFixed(2)}%)`;
-        selisihValue.textContent = selisihText;
-        
-        // Color coding
-        if (selisih !== 0) {
-            selisihDiv.classList.remove('bg-gray-50', 'bg-green-50');
-            selisihDiv.classList.add('bg-red-50');
-            selisihValue.classList.remove('text-gray-900', 'text-green-600');
-            selisihValue.classList.add('text-red-600');
+        if (selisih < 0) {
+            displayText = number_format(selisih) + ' Gram (susut)';
+            colorClass = 'text-red-600';
+        } else if (selisih > 0) {
+            displayText = '+' + number_format(selisih) + ' Gram (bertambah)';
+            colorClass = 'text-green-600';
         } else {
-            selisihDiv.classList.remove('bg-gray-50', 'bg-red-50');
-            selisihDiv.classList.add('bg-green-50');
-            selisihValue.classList.remove('text-gray-900', 'text-red-600');
-            selisihValue.classList.add('text-green-600');
+            displayText = '0 Gram (sama)';
+            colorClass = 'text-gray-600';
         }
+        
+        selisihSpan.textContent = displayText;
+        selisihSpan.className = colorClass + ' font-medium';
     }
+}
+
+function number_format(number) {
+    return new Intl.NumberFormat('id-ID').format(number);
 }
 </script>
 @endpush

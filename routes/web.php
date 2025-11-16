@@ -22,27 +22,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
         // Incoming Goods Routes
-        Route::prefix('incoming-goods')->name('incoming-goods.')->group(function () {
-        //list all
-        Route::get('/', [IncomingGoodsController::class, 'index'])->name('index');
+        Route::prefix('incoming-goods')
+            ->name('incoming-goods.')
+            ->group(function () {
+                //list all
+                Route::get('/', [IncomingGoodsController::class, 'index'])->name('index');
 
+                Route::get('export', [IncomingGoodsController::class, 'export'])->name('export');
 
-        // Step 1
-        Route::get('step-1', [IncomingGoodsController::class, 'createStep1'])->name('step1');
-        Route::post('step-1', [IncomingGoodsController::class, 'storeStep1'])->name('store-step1');
+                // Step 1
+                Route::get('step-1', [IncomingGoodsController::class, 'createStep1'])->name('step1');
+                Route::post('step-1', [IncomingGoodsController::class, 'storeStep1'])->name('store-step1');
 
-        // Step 2
-        Route::get('step-2', [IncomingGoodsController::class, 'createStep2'])->name('step2');
-        Route::post('step-2', [IncomingGoodsController::class, 'storeStep2'])->name('store-step2');
+                // Step 2
+                Route::get('step-2', [IncomingGoodsController::class, 'createStep2'])->name('step2');
+                Route::post('step-2', [IncomingGoodsController::class, 'storeStep2'])->name('store-step2');
 
-        // Step 3
-        Route::get('step-3', [IncomingGoodsController::class, 'createStep3'])->name('step3');
-        Route::post('step-3', [IncomingGoodsController::class, 'storeFinal'])->name('store-final');
+                // Step 3
+                Route::get('step-3', [IncomingGoodsController::class, 'createStep3'])->name('step3');
+                Route::post('step-3', [IncomingGoodsController::class, 'storeFinal'])->name('store-final');
 
-        // Show & Cancel
-        Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show');
-        Route::get('cancel', [IncomingGoodsController::class, 'cancel'])->name('cancel');
-    });
+                // Show & Cancel
+                Route::get('cancel', [IncomingGoodsController::class, 'cancel'])->name('cancel');
+                Route::delete('{id}', [IncomingGoodsController::class, 'destroy'])->name('destroy');
+                Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show'); // pindahkan ke bawah
+
+                // Export to Excel
+            });
 
          //Grading Goods Routes
         Route::prefix('grading-goods')->name('grading-goods.')->group(function () {
