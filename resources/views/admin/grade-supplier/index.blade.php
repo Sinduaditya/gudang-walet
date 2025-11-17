@@ -9,12 +9,14 @@
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-semibold text-gray-800">Manajemen Grade Company</h1>
                 <button onclick="exportExcel()" class="flex items-center text-sm text-gray-600 hover:text-gray-800">
-                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
-                    </svg>
-                    Download as Excel
-                </button>
+                    <a href="{{ route('grade-supplier.export') }}"
+                        class="flex items-center text-sm text-gray-600 hover:text-gray-800">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                        </svg>
+                        Download as Excel
+                    </a>
             </div>
 
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
@@ -165,12 +167,6 @@
                     }
                 }
             }
-        }
-
-        // Export to Excel (placeholder)
-        function exportExcel() {
-            alert('Fitur export Excel akan segera tersedia');
-            // Implement actual export logic here
         }
 
         // Modal delete
