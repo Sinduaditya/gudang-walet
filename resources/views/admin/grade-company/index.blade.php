@@ -83,7 +83,17 @@
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $grade->name }}</td>
                             <td class="px-6 py-4">
                                 @if($grade->image_url)
-                                    <img src="{{ asset('storage/' . $grade->image_url) }}" alt="{{ $grade->name }}" class="w-8 object-cover rounded">
+                                    @if(Str::startsWith($grade->image_url, ['http://', 'https://']))
+                                        {{-- Jika URL eksternal --}}
+                                        <img src="{{ $grade->image_url }}"
+                                            alt="{{ $grade->name }}"
+                                            class="w-8 object-cover rounded">
+                                    @else
+                                        {{-- Jika file lokal --}}
+                                        <img src="{{ asset('storage/' . $grade->image_url) }}"
+                                            alt="{{ $grade->name }}"
+                                            class="w-8 object-cover rounded">
+                                    @endif
                                 @else
                                     <span class="text-gray-400 text-sm">Tidak ada gambar</span>
                                 @endif
@@ -184,3 +194,4 @@
     }, 4000);
 </script>
 @endsection
+

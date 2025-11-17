@@ -42,8 +42,8 @@ class GradeCompanyService
     {
         $gradeCompany = $this->getById($id);
 
-        if ($gradeCompany->image && Storage::disk('public')->exists($gradeCompany->image)) {
-            Storage::disk('public')->delete($gradeCompany->image);
+        if ($gradeCompany->image_url && Storage::disk('public')->exists($gradeCompany->image_url)) {
+            Storage::disk('public')->delete($gradeCompany->image_url);
         }
 
         $gradeCompany->delete();

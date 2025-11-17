@@ -20,26 +20,38 @@ class GradingGoodsController extends Controller
         $this->gradingGoodsService = $gradingGoodsService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $gradings = $this->gradingGoodsService->getAllGrading();
+        $filters = [
+            'month' => $request->get('month'),
+            'year'  => $request->get('year'),
+        ];
+
+        $gradings = $this->gradingGoodsService->getAllGrading($filters);
+
         return view('admin.grading-goods.index', compact('gradings'));
     }
 
-    // Step 1 - show form (optional filter q = grade supplier name)
+    public function show($id)
+    {
+        $grading = $this->gradingGoodsService->getSortingResultWithRelations($id);
+
+        if (!$grading) {
+            return abort(404, 'Grading not found');
+        }
+
+        return view('admin.grading-goods.show', compact('grading'));
+    }
+
     public function createStep1(Request $request)
     {
-        // Sesuai flow Step 1: Dapatkan 'q' (nama grade supplier) dari query
         $q = $request->query('q');
-        // Sesuai flow Step 1: Ambil data item berdasarkan 'q'
         $receiptItems = $this->gradingGoodsService->getReceiptItemsByGradeSupplierName($q);
         return view('admin.grading-goods.step1', compact('receiptItems', 'q'));
     }
 
-    // Step 1 - store grading_date + create SortingResult with receipt_item_id
     public function storeStep1(Step1Request $request)
     {
-        // Sesuai flow Step 1: Simpan data dari form
         $sortingResult = $this->gradingGoodsService->createSortingResultStep1(
             $request->input('grading_date'),
             $request->input('receipt_item_id')
@@ -49,7 +61,6 @@ class GradingGoodsController extends Controller
             ->with('success', 'Step 1 tersimpan. Lanjutkan ke Step 2.');
     }
 
-    // Step 2 - show form to complete grading
     public function createStep2($id)
     {
         $sortingResult = $this->gradingGoodsService->getSortingResultWithRelations($id);
@@ -57,14 +68,13 @@ class GradingGoodsController extends Controller
             return redirect()->route('grading-goods.index')->with('error', 'Data grading tidak ditemukan.');
         }
 
-        // Data dari Step 1 (tgl_datang, berat_gudang) diambil via relasi $sortingResult
-        return view('admin.grading-goods.step2', compact('sortingResult'));
+        $allGradeCompanies = $this->gradingGoodsService->getAllGradeCompanies();
+
+        return view('admin.grading-goods.step2', compact('sortingResult', 'allGradeCompanies'));
     }
 
-    // Step 2 - update sorting result
     public function storeStep2(Step2Request $request, $id)
     {
-        // Sesuai flow Step 2: Simpan semua data
         $this->gradingGoodsService->updateSortingResultStep2(
             $id,
             $request->input('quantity'),
@@ -78,36 +88,25 @@ class GradingGoodsController extends Controller
 
     public function export()
     {
-        // Nama file saat di-download
         $fileName = 'data_grading_barang_' . date('Y-m-d') . '.xlsx';
 
-        // Panggil export class.
-        // Kita HARUS passing $this->gradingGoodsService ke constructor
-        // karena class export kita membutuhkannya.
         return Excel::download(new GradingGoodsExport($this->gradingGoodsService), $fileName);
     }
 
-    /**
-     * BARU: Menampilkan form edit.
-     */
     public function edit($id)
     {
-        // 1. Dapatkan data grading yang ingin di-edit
         $sortingResult = $this->gradingGoodsService->getSortingResultWithRelations($id);
         if (!$sortingResult) {
             return redirect()->route('grading-goods.index')->with('error', 'Data grading tidak ditemukan.');
         }
 
-        // 2. Dapatkan SEMUA item penerimaan untuk dropdown
-        // (agar user bisa mengganti grade supplier)
         $allReceiptItems = $this->gradingGoodsService->getReceiptItemsByGradeSupplierName(null);
 
-        return view('admin.grading-goods.edit', compact('sortingResult', 'allReceiptItems'));
+        $allGradeCompanies = $this->gradingGoodsService->getAllGradeCompanies();
+
+        return view('admin.grading-goods.edit', compact('sortingResult', 'allReceiptItems', 'allGradeCompanies'));
     }
 
-    /**
-     * BARU: Menyimpan perubahan dari form edit.
-     */
     public function update(UpdateGradingRequest $request, $id)
     {
         try {
@@ -119,9 +118,6 @@ class GradingGoodsController extends Controller
         }
     }
 
-    /**
-     * BARU: Menghapus data grading.
-     */
     public function destroy($id)
     {
         try {
