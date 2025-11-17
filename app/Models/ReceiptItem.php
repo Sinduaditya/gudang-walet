@@ -77,4 +77,3 @@ class ReceiptItem extends Model
     {
         return $query->where('status', self::STATUS_SELESAI_DISORTIR);
     }
-}

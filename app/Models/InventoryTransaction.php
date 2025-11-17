@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class InventoryTransaction extends Model
 {
     use HasFactory;
-
-    protected $table = 'inventory_transactions';
 
     protected $fillable = [
         'transaction_date',
@@ -18,21 +16,59 @@ class InventoryTransaction extends Model
         'quantity_change_grams',
         'transaction_type',
         'reference_id',
-        'created_by'
+        'created_by',
     ];
 
+    protected $casts = [
+        'transaction_date' => 'datetime',
+        'quantity_change_grams' => 'integer',
+    ];
+
+    /**
+     * Relasi ke GradeCompany
+     */
     public function gradeCompany()
     {
-        return $this->belongsTo(GradeCompany::class);
+        return $this->belongsTo(GradeCompany::class, 'grade_company_id');
     }
 
+    /**
+     * Relasi ke Location
+     */
     public function location()
     {
-        return $this->belongsTo(Location::class);
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
+    /**
+     * Relasi ke User (creator)
+     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relasi ke StockTransfer (jika transaction_type = TRANSFER_IN/OUT)
+     */
+    public function stockTransfer()
+    {
+        return $this->belongsTo(StockTransfer::class, 'reference_id');
+    }
+
+    /**
+     * Scope untuk transaksi keluar saja
+     */
+    public function scopeOutgoing($query)
+    {
+        return $query->whereIn('transaction_type', ['SALE_OUT', 'TRANSFER_OUT']);
+    }
+
+    /**
+     * Scope untuk transaksi masuk saja
+     */
+    public function scopeIncoming($query)
+    {
+        return $query->whereIn('transaction_type', ['PURCHASE_IN', 'TRANSFER_IN']);
     }
 }
