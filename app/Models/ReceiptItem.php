@@ -36,7 +36,7 @@ class ReceiptItem extends Model
         'is_flagged_red' => 'boolean',
     ];
 
-    public function receipt()
+    public function purchaseReceipt()
     {
         return $this->belongsTo(PurchaseReceipt::class, 'purchase_receipt_id');
     }
@@ -77,4 +77,3 @@ class ReceiptItem extends Model
     {
         return $query->where('status', self::STATUS_SELESAI_DISORTIR);
     }
-}
