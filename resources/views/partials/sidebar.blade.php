@@ -1,10 +1,8 @@
 <div class="bg-white text-gray-800 w-64 min-h-screen flex flex-col shadow-lg border-r border-gray-200">
-    <!-- Header dengan tombol close untuk mobile -->
     <div class="p-5 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-2xl font-bold text-blue-600">
             GudangWalet
         </h2>
-        <!-- Tombol close untuk mobile -->
         <button id="close-sidebar" class="md:hidden p-1 rounded-md hover:bg-gray-100 transition-colors">
             <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -18,15 +16,15 @@
             // Helper untuk active state
             $isDashboard = request()->routeIs('dashboard');
             $isBarangMasuk = request()->routeIs('incoming-goods.*');
-            $isGrading = request()->routeIs('grading.*');
-            $isBarangKeluar = request()->routeIs('barang-keluar.*');
+            $isGrading = request()->routeIs('grading-goods.*');
+            $isBarangKeluar = request()->routeIs('barang.keluar.*');
+            $isTrackingStok = request()->routeIs('stok.tracking.index');
             $isMasterGradeCompany = request()->routeIs('grade-company.*');
             $isMasterSupplier = request()->routeIs('suppliers.*');
             $isMasterGradeSupplier = request()->routeIs('grade-supplier.*');
             $isMasterLokasi = request()->routeIs('locations.*');
         @endphp
 
-        <!-- Dashboard -->
         <a href="{{ route('dashboard') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isDashboard ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -38,7 +36,6 @@
             <span class="font-medium">Dashboard</span>
         </a>
 
-        <!-- Barang Masuk  -->
         <a href="{{ route('incoming-goods.step1') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isBarangMasuk ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -51,8 +48,7 @@
         </a>
 
 
-        <!-- Manajemen Grading -->
-        <a href=""
+        <a href="#"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isGrading ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,8 +59,7 @@
             <span class="font-medium">Manajemen Grading</span>
         </a>
 
-        <!-- Barang Keluar -->
-        <a href=""
+        <a href="{{ route('barang.keluar.index') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isBarangKeluar ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +69,19 @@
             <span class="font-medium">Barang Keluar</span>
         </a>
 
-        <!-- Divider -->
+        {{-- ▼▼▼ TAMBAHKAN BLOK INI ▼▼▼ --}}
+        <a href="{{ route('stok.tracking.index') }}"
+            class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
+            {{ $isTrackingStok ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <span class="font-medium">Tracking Stok</span>
+        </a>
+        {{-- ▲▲▲ BATAS TAMBAHAN ▲▲▲ --}}
+
+
         <div class="pt-4">
             <div class="border-t border-gray-200 mb-4"></div>
             <h3 class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -82,7 +89,6 @@
             </h3>
 
             <div class="space-y-2">
-                <!-- Data Supplier -->
                 <a href="{{ route('suppliers.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                     {{ $isMasterSupplier ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -94,7 +100,6 @@
                     <span class="font-medium">Data Supplier</span>
                 </a>
 
-                <!-- Grading Supplier -->
                 <a href="{{ route('grade-supplier.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                     {{ $isMasterGradeSupplier ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -106,7 +111,6 @@
                     <span class="font-medium">Grading Supplier</span>
                 </a>
 
-                <!-- Grading Perusahaan -->
                 <a href="{{ route('grade-company.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                     {{ $isMasterGradeCompany ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -118,7 +122,6 @@
                     <span class="font-medium">Grading Perusahaan</span>
                 </a>
 
-                <!-- Data Lokasi -->
                 <a href="{{ route('locations.index') }}"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
                     {{ $isMasterLokasi ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -132,7 +135,6 @@
                     <span class="font-medium">Data Lokasi</span>
                 </a>
 
-                <!-- Logout -->
                 <a href="{{ route('logout') }}"
                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                     class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group text-red-600 hover:bg-red-50 hover:text-red-700">
@@ -151,7 +153,6 @@
         </div>
     </nav>
 
-    <!-- Footer sidebar (opsional) -->
     <div class="p-4 border-t border-gray-200">
         <div class="flex items-center text-xs text-gray-500">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

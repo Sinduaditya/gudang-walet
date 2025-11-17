@@ -1,19 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Data Barang Masuk')
+@section('title', 'Data Grading Barang')
 
 @section('content')
     <div class="bg-white min-h-screen">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-8">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">Data Barang Masuk</h1>
-                    <p class="mt-1 text-sm text-gray-600">Daftar penerimaan barang</p>
+                    <h1 class="text-2xl font-semibold text-gray-900">Data Grading Barang</h1>
+                    <p class="mt-1 text-sm text-gray-600">Daftar barang yang telah di grading perusahaan</p>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('incoming-goods.export') }}"
-                        class="flex items-center text-sm text-gray-600 hover:text-gray-800">
+                    <a href="" class="flex items-center text-sm text-gray-600 hover:text-gray-800">
                         <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
@@ -27,7 +26,7 @@
                             stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        Input Barang Masuk
+                        Input Grading Barang
                     </a>
                 </div>
             </div>
@@ -38,12 +37,11 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">No</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Grading</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nama by Supplier</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Kedatangan</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Bongkar</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Jumlah Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat (Gram)</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat setelah Grading (g)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
                         </thead>
@@ -58,33 +56,7 @@
                                         {{ optional($receipt->unloading_date)->format('d/m/Y') }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $receipt->receiptItems->count() }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ $receipt->receiptItems->sum('warehouse_weight_grams')  }}
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                        @php
-                                            $mentahCount = $receipt->receiptItems->where('status', 'mentah')->count();
-                                            $selesaiCount = $receipt->receiptItems
-                                                ->where('status', 'selesai_disortir')
-                                                ->count();
-                                            $totalCount = $receipt->receiptItems->count();
-                                        @endphp
-
-                                        @if ($selesaiCount === $totalCount)
-                                            <span
-                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Selesai Disortir
-                                            </span>
-                                        @elseif($mentahCount === $totalCount)
-                                            <span
-                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                Siap Digrading
-                                            </span>
-                                        @else
-                                            <span
-                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                Sebagian Disortir
-                                            </span>
-                                        @endif
+                                        {{ number_format($receipt->receiptItems->sum('warehouse_weight_grams') / 1000, 2) }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         <div class="flex items-center gap-2">
