@@ -17,9 +17,6 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
     protected $data;
     protected $gradingGoodsService;
 
-    /**
-     * Inject service dan ambil data sama persis seperti di halaman index.
-     */
     public function __construct(GradingGoodsService $gradingGoodsService)
     {
         $this->gradingGoodsService = $gradingGoodsService;
@@ -34,9 +31,6 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
         return $this->data;
     }
 
-    /**
-     * Mendefinisikan header kolom di Excel.
-     */
     public function headings(): array
     {
         return [
@@ -52,9 +46,6 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
         ];
     }
 
-    /**
-     * Memetakan data dari collection ke format array untuk Excel.
-     */
     public function map($row): array
     {
         return [
@@ -63,7 +54,6 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
             $row->grade_company_name ?? '-',
             $row->receipt_date ? \Carbon\Carbon::parse($row->receipt_date)->format('d/m/Y') : '-',
             $row->quantity ?? '-',
-            // Menggunakan format number yang benar untuk Excel (koma desimal, titik ribuan)
             $row->warehouse_weight_grams !== null ? number_format($row->warehouse_weight_grams, 2, ',', '.') : '-',
             $row->weight_grams !== null ? number_format($row->weight_grams, 2, ',', '.') : '-',
             $row->percentage_difference !== null ? number_format($row->percentage_difference, 2, ',', '.') . ' %' : '-',
@@ -71,18 +61,13 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
         ];
     }
 
-    /**
-     * Memberi styling pada header dan data, termasuk logika merah.
-     */
     public function styles(Worksheet $sheet)
     {
-        // 1. Style Header (Baris 1)
-        // Kolom A sampai I, Baris 1
         $sheet->getStyle('A1:I1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 12],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'E5E7EB'] // Abu-abu muda
+                'startColor' => ['rgb' => 'E5E7EB']
             ],
             'borders' => [
                 'allBorders' => ['borderStyle' => Border::BORDER_THIN],
@@ -109,10 +94,10 @@ class GradingGoodsExport implements FromCollection, WithHeadings, WithMapping, S
                 if ($selisih > 1.5) {
                     // Jika selisih > 1.5, warnai cell
                     $sheet->getStyle($percentageCell)->applyFromArray([
-                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true], // Merah
+                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true], 
                         'fill' => [
                             'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => 'FEE2E2'] // Merah muda
+                            'startColor' => ['rgb' => 'FEE2E2']
                         ]
                     ]);
                 }

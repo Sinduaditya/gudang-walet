@@ -47,8 +47,8 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('{id}/edit', [IncomingGoodsController::class, 'edit'])->name('edit');
                 Route::put('{id}', [IncomingGoodsController::class, 'update'])->name('update');
                 Route::delete('{id}', [IncomingGoodsController::class, 'destroy'])->name('destroy');
-                Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show'); 
-           
+                Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show');
+
 
                 // Export to Excel
             });
@@ -57,11 +57,13 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('grading-goods')->name('grading-goods.')->group(function () {
             Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
 
-            // Step 1: pilih receipt_item (berdasarkan grade supplier), input grading_date
+            Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
+
+            // Step 1
             Route::get('step-1', [GradingGoodsController::class, 'createStep1'])->name('step1');
             Route::post('step-1', [GradingGoodsController::class, 'storeStep1'])->name('step1.store');
 
-            // Step 2: lengkapi quantity, grade company, weight_grams, notes
+            // Step 2
             Route::get('step-2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
             Route::post('step-2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('step2.store');
 
@@ -70,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('update/{id}', [GradingGoodsController::class, 'update'])->name('update');
             Route::delete('delete/{id}', [GradingGoodsController::class, 'destroy'])->name('destroy');
 
-            Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
+            Route::get('/{id}', [GradingGoodsController::class, 'show'])->name('show');
         });
 
         // Export Data Master to Excel

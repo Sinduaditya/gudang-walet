@@ -43,10 +43,16 @@
                         <label for="grading_date" class="block text-sm font-medium text-gray-700">
                             Tanggal Grading <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative max-w-sm">
+                        <div class="relative">
                             <input type="date" name="grading_date" id="grading_date" value="{{ old('grading_date', date('Y-m-d')) }}"
-                                class="mt-1.5 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md @error('grading_date') border-red-500 @enderror"
+                                class="mt-1.5 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-900 font-semibold pl-4 pr-10 py-2.5 @error('grading_date') border-red-500 @enderror"
                                 required>
+
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
                         </div>
                         @error('grading_date')
                             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -102,11 +108,37 @@
                                 class="receipt-radio peer sr-only">
 
                             <div class="border-2 border-gray-200 rounded-xl p-3 transition-all duration-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300 hover:shadow-md peer-checked:shadow-md h-full flex flex-col">
-                                <div class="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-                                    <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
+
+                                {{-- AREA GAMBAR DIPERBAIKI --}}
+                                <div class="w-full h-20 bg-gray-100 rounded-lg flex items-center justify-center mb-3 overflow-hidden relative">
+                                    @if(!empty($ri->grade_supplier_image_url))
+                                        @php
+                                            $imgUrl = $ri->grade_supplier_image_url;
+                                            $isExternal = \Illuminate\Support\Str::startsWith($imgUrl, ['http://', 'https://']);
+                                            $finalSrc = $isExternal ? $imgUrl : asset('storage/' . $imgUrl);
+                                        @endphp
+
+                                        <img src="{{ $finalSrc }}"
+                                             alt="{{ $ri->grade_supplier_name }}"
+                                             class="object-cover w-full h-full"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+                                        {{-- Fallback jika gambar error load --}}
+                                        <div class="hidden w-full h-full items-center justify-center bg-gray-100 absolute top-0 left-0">
+                                             <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
+                                    @else
+                                        {{-- Icon Default --}}
+                                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    @endif
                                 </div>
+                                {{-- END AREA GAMBAR --}}
+
                                 <p class="text-sm font-semibold text-gray-900 leading-snug text-center">
                                     {{ optional($ri)->grade_supplier_name ?: 'N/A' }}
                                 </p>
@@ -150,7 +182,7 @@
                         <label for="auto_tgl_datang" class="block text-sm font-medium text-gray-700">
                             Tanggal Datang
                         </label>
-                        <div class="relative max-w-sm">
+                        <div class="relative">
                             <input type="text" name="auto_tgl_datang" id="auto_tgl_datang"
                                    class="mt-1.5 shadow-sm block w-full sm:text-sm border-gray-300 rounded-md bg-white text-gray-900 font-semibold pl-4 pr-10 py-2.5"
                                    readonly>
@@ -203,7 +235,7 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
-/* Style tambahan untuk input date picker yang disembunyikan agar ikon muncul */
+
 input[type="date"]::-webkit-calendar-picker-indicator {
     background: transparent;
     bottom: 0;

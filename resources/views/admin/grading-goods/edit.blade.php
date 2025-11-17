@@ -45,17 +45,11 @@
                                 <option value="">-- Pilih Item --</option>
                                 @foreach($allReceiptItems as $item)
                                     <option value="{{ $item->id }}"
-                                        {{-- Data-attribute untuk JS --}}
                                         data-tgl-datang="{{ $item->receipt_date ? \Carbon\Carbon::parse($item->receipt_date)->format('d/m/Y') : 'N/A' }}"
                                         data-berat-gudang="{{ $item->warehouse_weight_grams ?? 0 }}"
-                                        {{-- Cek old value atau data asli --}}
                                         {{ old('receipt_item_id', $sortingResult->receipt_item_id) == $item->id ? 'selected' : '' }}
                                     >
-                                        {{-- (Grade: --}}
                                         {{ $item->grade_supplier_name }}
-                                        {{-- ) --}}
-                                        {{-- | (Tgl: {{ $item->receipt_date ? \Carbon\Carbon::parse($item->receipt_date)->format('d/m/Y') : '' }})
-                                        | (Berat: {{ $item->warehouse_weight_grams }} g) --}}
                                     </option>
                                 @endforeach
                             </select>
