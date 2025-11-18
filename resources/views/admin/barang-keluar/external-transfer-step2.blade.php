@@ -5,7 +5,7 @@
 @section('content')
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-    <div class="max-w-4xl mx-auto px-4">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-gray-900">Transfer External</h1>
@@ -44,18 +44,6 @@
                 <div class="p-6">
                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border-2 border-green-200">
                         <div class="space-y-4">
-                            <!-- Lokasi Asal -->
-                            <div class="flex items-center justify-between pb-3 border-b border-green-200">
-                                <span class="text-sm font-medium text-gray-600 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    </svg>
-                                    Lokasi Asal
-                                </span>
-                                <span class="font-semibold text-gray-900">{{ $fromLocation->name }}</span>
-                            </div>
-
                             <!-- Grade -->
                             <div class="flex items-center justify-between pb-3 border-b border-green-200">
                                 <span class="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -160,7 +148,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <div>
-                        <h4 class="text-sm font-semibold text-blue-800 mb-1">ℹ️ Informasi</h4>
+                        <h4 class="text-sm font-semibold text-blue-800 mb-1">Informasi</h4>
                         <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
                             <li>Barang dari <strong>{{ $fromLocation->name }}</strong> akan masuk ke <strong>{{ $toLocation->name }}</strong></li>
                             <li>Stok akan <strong>bertambah</strong> setelah transfer dikonfirmasi</li>

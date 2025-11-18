@@ -15,18 +15,7 @@ class ReceiptItem extends Model
     const STATUS_MENTAH = 'mentah';
     const STATUS_SELESAI_DISORTIR = 'selesai_disortir';
 
-    protected $fillable = [
-        'purchase_receipt_id',
-        'grade_supplier_id',
-        'supplier_weight_grams',
-        'warehouse_weight_grams',
-        'difference_grams',
-        'moisture_percentage',
-        'is_flagged_red',
-        'status',
-        'created_by',
-        'updated_by',
-    ];
+    protected $fillable = ['purchase_receipt_id', 'grade_supplier_id', 'supplier_weight_grams', 'warehouse_weight_grams', 'difference_grams', 'moisture_percentage', 'is_flagged_red', 'status', 'created_by', 'updated_by'];
 
     protected $casts = [
         'supplier_weight_grams' => 'integer',
@@ -77,3 +66,25 @@ class ReceiptItem extends Model
     {
         return $query->where('status', self::STATUS_SELESAI_DISORTIR);
     }
+
+    public function sortingResults()
+    {
+        return $this->hasMany(SortingResult::class, 'receipt_item_id');
+    }
+
+    public function hasSortingResults()
+    {
+        return $this->sortingResults()->exists();
+    }
+
+    public function canBeGraded()
+    {
+        return $this->isMentah() && !$this->hasSortingResults();
+    }
+
+    // Method untuk mendapatkan total weight dari hasil grading
+    public function getTotalGradedWeight()
+    {
+        return $this->sortingResults()->sum('weight_grams');
+    }
+}

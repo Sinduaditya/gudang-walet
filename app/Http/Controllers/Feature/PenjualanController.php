@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Feature;
 
 use App\Http\Controllers\Controller;
@@ -24,20 +25,23 @@ class PenjualanController extends Controller
     public function sellForm(Request $request)
     {
         $grades = GradeCompany::all();
-        $locations = Location::all();
+        
+        // Dapatkan lokasi "Gudang Utama" sebagai default
+        $defaultLocation = Location::where('name', 'Gudang Utama')->first();
 
-        // Riwayat khusus penjualan (SALE_OUT)
+        // Jika tidak ada lokasi "Gudang Utama", kembalikan error atau redirect
+        if (!$defaultLocation) {
+            return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
+        }
+
+        // Riwayat khusus penjualan (SALE_OUT) dari Gudang Utama
         $query = InventoryTransaction::where('transaction_type', 'SALE_OUT')
+            ->where('location_id', $defaultLocation->id)
             ->with(['gradeCompany', 'location']);
 
         // Filter berdasarkan grade jika ada
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
-        }
-
-        // Filter berdasarkan lokasi jika ada
-        if ($request->filled('location_id')) {
-            $query->where('location_id', $request->location_id);
         }
 
         $penjualanTransactions = $query->latest('transaction_date')
@@ -46,7 +50,7 @@ class PenjualanController extends Controller
 
         return view('admin.barang-keluar.sell', compact(
             'grades',
-            'locations',
+            'defaultLocation',
             'penjualanTransactions'
         ));
     }
@@ -56,7 +60,13 @@ class PenjualanController extends Controller
      */
     public function sell(SellRequest $request)
     {
-        $this->service->sell($request->validated());
+        // Pastikan location_id adalah Gudang Utama
+        $defaultLocation = Location::where('name', 'Gudang Utama')->first();
+        
+        $data = $request->validated();
+        $data['location_id'] = $defaultLocation->id;
+
+        $this->service->sell($data);
 
         return redirect()
             ->route('barang.keluar.sell.form')

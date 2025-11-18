@@ -5,7 +5,7 @@
 @section('content')
 
     <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-        <div class="max-w-4xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-gray-900">Transfer Internal</h1>
                 <p class="mt-1 text-sm text-gray-600">Konfirmasi data transfer</p>
@@ -43,7 +43,7 @@
             </div>
 
 
-            <form action="{{ route('barang.keluar.transfer') }}" method="POST">
+            <form action="{{ route('barang.keluar.transfer.store') }}" method="POST">
                 @csrf
 
                 <div class="bg-white rounded-xl shadow-md border border-gray-200 mb-6">
