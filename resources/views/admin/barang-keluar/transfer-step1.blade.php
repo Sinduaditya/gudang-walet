@@ -188,16 +188,6 @@
                                         @enderror
                                     </div>
                                 </div>
-
-                                {{-- Arrow Icon --}}
-                                <div class="hidden md:flex absolute left-1/2 top-12 -translate-x-1/2 z-10">
-                                    <div class="bg-purple-100 rounded-full p-2 border-2 border-white shadow-md">
-                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                        </svg>
-                                    </div>
-                                </div>
                             </div>
 
                             {{-- Weight & Date --}}

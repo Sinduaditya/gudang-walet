@@ -36,7 +36,7 @@
             <span class="font-medium">Dashboard</span>
         </a>
 
-        <a href="{{ route('incoming-goods.step1') }}"
+        <a href="{{ route('incoming-goods.index') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isBarangMasuk ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
         </a>
 
 
-        <a href="#"
+        <a href="{{ route('grading-goods.index') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isGrading ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

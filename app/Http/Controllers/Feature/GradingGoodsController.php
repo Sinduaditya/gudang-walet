@@ -24,7 +24,7 @@ class GradingGoodsController extends Controller
     {
         $filters = [
             'month' => $request->get('month'),
-            'year'  => $request->get('year'),
+            'year' => $request->get('year'),
         ];
 
         $gradings = $this->gradingGoodsService->getAllGrading($filters);
@@ -52,19 +52,17 @@ class GradingGoodsController extends Controller
 
     public function storeStep1(Step1Request $request)
     {
-        $sortingResult = $this->gradingGoodsService->createSortingResultStep1(
-            $request->input('grading_date'),
-            $request->input('receipt_item_id')
-        );
+        $sortingResult = $this->gradingGoodsService->createSortingResultStep1($request->input('grading_date'), $request->input('receipt_item_id'));
 
-        return redirect()->route('grading-goods.step2', ['id' => $sortingResult->id])
+        return redirect()
+            ->route('grading-goods.step2', ['id' => $sortingResult->id])
             ->with('success', 'Step 1 tersimpan. Lanjutkan ke Step 2.');
     }
 
     public function createStep2($id)
     {
         $sortingResult = $this->gradingGoodsService->getSortingResultWithRelations($id);
-        if (! $sortingResult) {
+        if (!$sortingResult) {
             return redirect()->route('grading-goods.index')->with('error', 'Data grading tidak ditemukan.');
         }
 
@@ -75,22 +73,51 @@ class GradingGoodsController extends Controller
 
     public function storeStep2(Step2Request $request, $id)
     {
-        $this->gradingGoodsService->updateSortingResultStep2(
-            $id,
-            $request->input('quantity'),
-            $request->input('grade_company_name'),
-            $request->input('weight_grams'),
-            $request->input('notes')
-        );
+        try {
+            $grades = $request->input('grades');
+            $globalNotes = $request->input('global_notes');
 
-        return redirect()->route('grading-goods.index')->with('success', 'Step 2 selesai. Grading disimpan.');
+            $results = $this->gradingGoodsService->updateSortingResultStep2Multiple($id, $grades, $globalNotes);
+
+            $gradesCount = count($results);
+            $totalWeight = collect($grades)->sum('weight_grams');
+
+            return redirect()
+                ->route('grading-goods.index')
+                ->with('success', "Grading berhasil disimpan! Menghasilkan {$gradesCount} grade dengan total berat {$totalWeight} gram.");
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $fileName = 'data_grading_barang_' . date('Y-m-d') . '.xlsx';
+        // Get filters if any
+        $filters = [
+            'month' => $request->get('month'),
+            'year' => $request->get('year'),
+        ];
 
-        return Excel::download(new GradingGoodsExport($this->gradingGoodsService), $fileName);
+        // Create filename with date range
+        $fileName = 'laporan_grading_barang';
+
+        if (!empty($filters['month']) || !empty($filters['year'])) {
+            $fileName .= '_';
+            if (!empty($filters['month'])) {
+                $fileName .= 'bulan_' . $filters['month'];
+            }
+            if (!empty($filters['year'])) {
+                $fileName .= '_tahun_' . $filters['year'];
+            }
+        }
+
+        $fileName .= '_' . date('Y-m-d') . '.xlsx';
+
+        // Pass filters to export
+        $export = new GradingGoodsExport($this->gradingGoodsService);
+        return Excel::download($export, $fileName);
     }
 
     public function edit($id)

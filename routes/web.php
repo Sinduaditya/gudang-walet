@@ -9,7 +9,6 @@ use App\Http\Controllers\Master\GradeCompanyController;
 use App\Http\Controllers\Feature\GradingGoodsController;
 use App\Http\Controllers\Master\GradeSupplierController;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Http\Controllers\Feature\IncomingGoodsController;
 use App\Exports\GradeSupplierExport;
 use App\Http\Controllers\Feature\BarangKeluarController;
 use App\Http\Controllers\Feature\PenjualanController;
@@ -56,72 +55,76 @@ Route::middleware(['auth'])->group(function () {
                 Route::put('{id}', [IncomingGoodsController::class, 'update'])->name('update');
                 Route::delete('{id}', [IncomingGoodsController::class, 'destroy'])->name('destroy');
                 Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show');
-
-
-                // Export to Excel
             });
 
-         //Grading Goods Routes
-        Route::prefix('grading-goods')->name('grading-goods.')->group(function () {
-            Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
+        //Grading Goods Routes
+        Route::prefix('grading-goods')
+            ->name('grading-goods.')
+            ->group(function () {
+                Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
 
-            Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
+                Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
 
-            // Step 1
-            Route::get('step-1', [GradingGoodsController::class, 'createStep1'])->name('step1');
-            Route::post('step-1', [GradingGoodsController::class, 'storeStep1'])->name('step1.store');
+                // Step 1
+                Route::get('step-1', [GradingGoodsController::class, 'createStep1'])->name('step1');
+                Route::post('step-1', [GradingGoodsController::class, 'storeStep1'])->name('step1.store');
 
-            // Step 2
-            Route::get('step-2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
-            Route::post('step-2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('step2.store');
+                // Step 2
+                Route::get('step-2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
+                Route::post('step-2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('step2.store');
 
-            // Edit, Update, Delete
-            Route::get('edit/{id}', [GradingGoodsController::class, 'edit'])->name('edit');
-            Route::put('update/{id}', [GradingGoodsController::class, 'update'])->name('update');
-            Route::delete('delete/{id}', [GradingGoodsController::class, 'destroy'])->name('destroy');
+                // Edit, Update, Delete
+                Route::get('edit/{id}', [GradingGoodsController::class, 'edit'])->name('edit');
+                Route::put('update/{id}', [GradingGoodsController::class, 'update'])->name('update');
+                Route::delete('delete/{id}', [GradingGoodsController::class, 'destroy'])->name('destroy');
 
-            Route::get('/{id}', [GradingGoodsController::class, 'show'])->name('show');
-        });
+                Route::get('/{id}', [GradingGoodsController::class, 'show'])->name('show');
+            });
 
         // Export Data Master to Excel
         Route::get('suppliers/export', [SupplierController::class, 'export'])->name('suppliers.export');
         Route::get('locations/export', [LocationController::class, 'export'])->name('locations.export');
         Route::get('/grade-supplier/export', function () {
-            return Excel::download(new GradeSupplierExport, 'grade_suppliers.xlsx');
+            return Excel::download(new GradeSupplierExport(), 'grade_suppliers.xlsx');
         })->name('grade-supplier.export');
 
+        Route::prefix('barang-keluar')
+            ->name('barang.keluar.')
+            ->group(function () {
+                // ========== INDEX ==========
+                Route::get('/', [BarangKeluarController::class, 'index'])->name('index');
 
-        Route::prefix('barang-keluar')->name('barang.keluar.')->group(function () {
+                // ========== PENJUALAN ==========
+                Route::prefix('penjualan')
+                    ->name('sell.')
+                    ->group(function () {
+                        Route::get('/', [PenjualanController::class, 'sellForm'])->name('form');
+                        Route::post('/', [PenjualanController::class, 'sell'])->name('store');
+                    });
 
-    // ========== INDEX ==========
-    Route::get('/', [BarangKeluarController::class, 'index'])->name('index');
+                // ========== TRANSFER INTERNAL ==========
+                Route::prefix('transfer')
+                    ->name('transfer.')
+                    ->group(function () {
+                        Route::get('/step1', [TransferInternalController::class, 'transferStep1'])->name('step1');
+                        Route::post('/step1', [TransferInternalController::class, 'storeTransferStep1'])->name('store-step1');
+                        Route::get('/step2', [TransferInternalController::class, 'transferStep2'])->name('step2');
+                        Route::post('/confirm', [TransferInternalController::class, 'transfer'])->name('store');
+                    });
 
-    // ========== PENJUALAN ==========
-    Route::prefix('penjualan')->name('sell.')->group(function () {
-        Route::get('/', [PenjualanController::class, 'sellForm'])->name('form');
-        Route::post('/', [PenjualanController::class, 'sell'])->name('store');
-    });
-
-    // ========== TRANSFER INTERNAL ==========
-    Route::prefix('transfer')->name('transfer.')->group(function () {
-        Route::get('/step1', [TransferInternalController::class, 'transferStep1'])->name('step1');
-        Route::post('/step1', [TransferInternalController::class, 'storeTransferStep1'])->name('store-step1');
-        Route::get('/step2', [TransferInternalController::class, 'transferStep2'])->name('step2');
-        Route::post('/confirm', [TransferInternalController::class, 'transfer'])->name('store');
-    });
-
-    // ========== TRANSFER EXTERNAL ==========
-    Route::prefix('transfer-external')->name('external-transfer.')->group(function () {
-        Route::get('/step1', [TransferExternalController::class, 'externalTransferStep1'])->name('step1');
-        Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
-        Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
-        Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
-    });
-});
+                // ========== TRANSFER EXTERNAL ==========
+                Route::prefix('transfer-external')
+                    ->name('external-transfer.')
+                    ->group(function () {
+                        Route::get('/step1', [TransferExternalController::class, 'externalTransferStep1'])->name('step1');
+                        Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
+                        Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
+                        Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
+                    });
+            });
 
         // Di dalam group middleware 'auth' and 'prefix' admin Anda
-        Route::get('/tracking-stok', [StokController::class, 'index'])
-            ->name('stok.tracking.index');
+        Route::get('/tracking-stok', [StokController::class, 'index'])->name('stok.tracking.index');
 
         // Master Route
         Route::resource('locations', LocationController::class);

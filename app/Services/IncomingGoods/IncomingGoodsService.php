@@ -67,8 +67,7 @@ class IncomingGoodsService
      */
     public function getReceiptById($id)
     {
-        return PurchaseReceipt::with(['supplier', 'receiptItems.gradeSupplier'])
-            ->findOrFail($id);
+        return PurchaseReceipt::with(['supplier', 'receiptItems.gradeSupplier'])->findOrFail($id);
     }
 
     /**
@@ -206,21 +205,49 @@ class IncomingGoodsService
     {
         try {
             // Generate filename with filter info
-            $filename = 'incoming-goods';
-            
+            $filename = 'laporan_barang_masuk';
+
             if (!empty($filters['month']) && !empty($filters['year'])) {
-                $monthName = date('F', mktime(0, 0, 0, $filters['month'], 1));
-                $filename .= '-' . $monthName . '-' . $filters['year'];
+                $monthNames = [
+                    '1' => 'Januari',
+                    '2' => 'Februari',
+                    '3' => 'Maret',
+                    '4' => 'April',
+                    '5' => 'Mei',
+                    '6' => 'Juni',
+                    '7' => 'Juli',
+                    '8' => 'Agustus',
+                    '9' => 'September',
+                    '10' => 'Oktober',
+                    '11' => 'November',
+                    '12' => 'Desember',
+                ];
+                $monthName = $monthNames[$filters['month']] ?? $filters['month'];
+                $filename .= '_bulan_' . $filters['month'] . '_tahun_' . $filters['year'];
             } elseif (!empty($filters['year'])) {
-                $filename .= '-' . $filters['year'];
+                $filename .= '_tahun_' . $filters['year'];
             } elseif (!empty($filters['month'])) {
-                $monthName = date('F', mktime(0, 0, 0, $filters['month'], 1));
-                $filename .= '-' . $monthName;
-            } else {
-                $filename .= '-' . date('Y-m-d');
+                $monthNames = [
+                    '1' => 'Januari',
+                    '2' => 'Februari',
+                    '3' => 'Maret',
+                    '4' => 'April',
+                    '5' => 'Mei',
+                    '6' => 'Juni',
+                    '7' => 'Juli',
+                    '8' => 'Agustus',
+                    '9' => 'September',
+                    '10' => 'Oktober',
+                    '11' => 'November',
+                    '12' => 'Desember',
+                ];
+                $monthName = $monthNames[$filters['month']] ?? $filters['month'];
+                $filename .= '_bulan_' . $filters['month'];
             }
 
-            return Excel::download(new IncomingGoodsExport($filters), $filename . '.xlsx');
+            $filename .= '_' . date('Y-m-d') . '.xlsx';
+
+            return Excel::download(new IncomingGoodsExport($filters), $filename);
         } catch (\Exception $e) {
             Log::error('Export failed: ' . $e->getMessage());
             throw new Exception('Gagal mengekspor data: ' . $e->getMessage());

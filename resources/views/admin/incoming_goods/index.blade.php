@@ -12,15 +12,18 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <!-- Export with Filter Button -->
-                    <button onclick="openExportModal()"
+                    <!-- Export Button - Berpatokan pada filter yang aktif -->
+                    <a href="{{ route('incoming-goods.export', request()->query()) }}"
                         class="flex items-center text-sm text-gray-600 hover:text-gray-800 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-md border border-green-200">
                         <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
                         </svg>
                         Export Excel
-                    </button>
+                        @if(request('month') || request('year'))
+                            <span class="ml-1 text-xs text-blue-600">(Filtered)</span>
+                        @endif
+                    </a>
 
                     <a href="{{ route('incoming-goods.step1') }}"
                         class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700">
@@ -78,6 +81,27 @@
                         </a>
                     </div>
                 </form>
+
+                <!-- Active Filter Display -->
+                @if(request('month') || request('year'))
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="text-sm text-gray-600">Filter aktif:</span>
+                            
+                            @if(request('month'))
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Bulan: {{ date('F', mktime(0, 0, 0, request('month'), 1)) }}
+                                </span>
+                            @endif
+                            
+                            @if(request('year'))
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Tahun: {{ request('year') }}
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="bg-white shadow-sm border rounded-lg overflow-hidden">
@@ -90,8 +114,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Bongkar</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Jumlah Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat Grading (Gram)
-                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Berat Bersih(Gram)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
@@ -149,7 +172,11 @@
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                                        Belum ada data barang masuk.
+                                        @if(request('month') || request('year'))
+                                            Tidak ada data barang masuk untuk filter yang dipilih.
+                                        @else
+                                            Belum ada data barang masuk.
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
@@ -163,47 +190,6 @@
                     </div>
                 @endif
             </div>
-        </div>
-    </div>
-
-    <!-- Export Modal -->
-    <div id="exportModal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-96">
-            <h3 class="font-medium mb-4">Export Data Excel</h3>
-            <form action="{{ route('incoming-goods.export') }}" method="GET">
-                <div class="space-y-4">
-                    <!-- Filter Bulan Export -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
-                        <select name="month"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Semua Bulan</option>
-                            @for ($i = 1; $i <= 12; $i++)
-                                <option value="{{ $i }}">{{ date('F', mktime(0, 0, 0, $i, 1)) }}</option>
-                            @endfor
-                        </select>
-                    </div>
-
-                    <!-- Filter Tahun Export -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
-                        <select name="year"
-                            class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Semua Tahun</option>
-                            @for ($year = date('Y'); $year >= 2020; $year--)
-                                <option value="{{ $year }}">{{ $year }}</option>
-                            @endfor
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="closeExportModal()"
-                        class="flex-1 px-3 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Batal</button>
-                    <button type="submit"
-                        class="flex-1 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Export</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -235,14 +221,6 @@
 
             function closeDeleteModal() {
                 document.getElementById('deleteModal').classList.add('hidden');
-            }
-
-            function openExportModal() {
-                document.getElementById('exportModal').classList.remove('hidden');
-            }
-
-            function closeExportModal() {
-                document.getElementById('exportModal').classList.add('hidden');
             }
         </script>
     @endpush
