@@ -24,35 +24,50 @@ class PenjualanController extends Controller
      */
     public function sellForm(Request $request)
     {
-        $grades = GradeCompany::all();
-        
-        // Dapatkan lokasi "Gudang Utama" sebagai default
         $defaultLocation = Location::where('name', 'Gudang Utama')->first();
-
-        // Jika tidak ada lokasi "Gudang Utama", kembalikan error atau redirect
         if (!$defaultLocation) {
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        // Riwayat khusus penjualan (SALE_OUT) dari Gudang Utama
+        $grades = GradeCompany::all();
+
+        $gradesWithStock = $grades->map(function ($grade) use ($defaultLocation) {
+            $available = (int) $this->service->getAvailableStock($grade->id, $defaultLocation->id);
+            return [
+                'id' => $grade->id,
+                'name' => $grade->name ?? '',
+                'total_stock_grams' => $available,
+            ];
+        });
+
         $query = InventoryTransaction::where('transaction_type', 'SALE_OUT')
             ->where('location_id', $defaultLocation->id)
             ->with(['gradeCompany', 'location']);
 
-        // Filter berdasarkan grade jika ada
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
         }
 
-        $penjualanTransactions = $query->latest('transaction_date')
-            ->latest('id')
-            ->paginate(10);
+        $penjualanTransactions = $query->latest('transaction_date')->paginate(10);
 
         return view('admin.barang-keluar.sell', compact(
-            'grades',
+            'gradesWithStock',
             'defaultLocation',
             'penjualanTransactions'
         ));
+    }
+
+    public function checkStock(Request $request)
+    {
+        $gradeId = (int) $request->query('grade_company_id');
+        $locationId = (int) $request->query('location_id', 1);
+
+        if (!$gradeId) {
+            return response()->json(['ok' => false, 'message' => 'grade_company_id required'], 400);
+        }
+
+        $available = $this->service->getAvailableStock($gradeId, $locationId);
+        return response()->json(['ok' => true, 'available_grams' => (int)$available]);
     }
 
     /**
@@ -65,11 +80,37 @@ class PenjualanController extends Controller
         
         $data = $request->validated();
         $data['location_id'] = $defaultLocation->id;
+        if (!$this->service->hasEnoughStock($data['grade_company_id'], $data['location_id'], $data['weight_grams'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Stok tidak mencukupi. Gunakan tombol "Cek Stok" untuk melihat sisa stok.');
+        }
 
         $this->service->sell($data);
 
         return redirect()
             ->route('barang.keluar.sell.form')
             ->with('success', 'Penjualan berhasil dicatat dan stok diperbarui.');
+    }
+
+    public function edit($id)
+    {
+        $tx = InventoryTransaction::findOrFail($id);
+        return view('admin.barang-keluar.sell-edit', compact('tx'));
+    }
+
+    public function update(\Illuminate\Http\Request $request, $id)
+    {
+        $tx = InventoryTransaction::findOrFail($id);
+        $request->validate(['weight_grams' => 'required|numeric|min:0.01']);
+        $tx->update(['quantity_change_grams' => -abs($request->input('weight_grams'))]);
+        return redirect()->route('barang.keluar.sell.form')->with('success', 'Transaksi diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $tx = InventoryTransaction::findOrFail($id);
+        $tx->delete();
+        return redirect()->route('barang.keluar.sell.form')->with('success', 'Transaksi penjualan dihapus.');
     }
 }

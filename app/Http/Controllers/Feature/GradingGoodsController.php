@@ -116,7 +116,7 @@ class GradingGoodsController extends Controller
         $fileName .= '_' . date('Y-m-d') . '.xlsx';
 
         // Pass filters to export
-        $export = new GradingGoodsExport($this->gradingGoodsService);
+        $export = new GradingGoodsExport($this->gradingGoodsService, $filters);
         return Excel::download($export, $fileName);
     }
 

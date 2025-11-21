@@ -40,4 +40,28 @@ class StockTransfer extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+     public function inventoryTransactions()
+    {
+        return $this->hasMany(InventoryTransaction::class, 'reference_id')
+            ->whereIn('transaction_type', ['TRANSFER_OUT', 'TRANSFER_IN']);
+    }
+
+    /**
+     * Get transaction OUT (negatif)
+     */
+    public function outTransaction()
+    {
+        return $this->hasOne(InventoryTransaction::class, 'reference_id')
+            ->where('transaction_type', 'TRANSFER_OUT');
+    }
+
+    /**
+     * Get transaction IN (positif)
+     */
+    public function inTransaction()
+    {
+        return $this->hasOne(InventoryTransaction::class, 'reference_id')
+            ->where('transaction_type', 'TRANSFER_IN');
+    }
 }
