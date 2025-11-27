@@ -120,17 +120,37 @@ class DashboardService
      */
     public function getFlowBarangKeJasaCuci()
     {
-        // Ambil data penjualan ke jasa cuci (buyer yang mengandung kata cuci/jasa/cv/pt)
-        $jasaCuciData = Sale::with('saleItems')
-            ->where(function ($query) {
-                $query->where('buyer_name', 'LIKE', '%cuci%')->orWhere('buyer_name', 'LIKE', '%jasa%')->orWhere('buyer_name', 'LIKE', '%CV%')->orWhere('buyer_name', 'LIKE', '%PT%');
-            })
-            ->whereMonth('sale_date', Carbon::now()->month)
+    
+        $jasaCuciLocations = Location::where(function ($query) {
+            $query->where('name', 'LIKE', '%cuci%')
+              ->orWhere('name', 'LIKE', '%jasa%')
+              ->orWhere('name', 'LIKE', '%CV%')
+              ->orWhere('name', 'LIKE', '%PT%')
+              ->orWhere('name', 'LIKE', '%DMK%')
+              ->orWhere('name', 'LIKE', '%Demak%');
+        })
+        ->where('name', 'NOT LIKE', '%Gudang Utama%')
+        ->pluck('id');
+
+        if ($jasaCuciLocations->isEmpty()) {
+            // Jika tidak ada lokasi jasa cuci, return data kosong
+            return [
+                'labels' => [],
+                'data' => [],
+            ];
+        }
+
+        // Ambil transaksi penjualan ke lokasi jasa cuci bulan ini
+        $jasaCuciData = InventoryTransaction::with(['location', 'gradeCompany'])
+            ->where('transaction_type', 'SALE_OUT')
+            ->whereIn('location_id', $jasaCuciLocations)
+            ->whereMonth('transaction_date', Carbon::now()->month)
+            ->whereYear('transaction_date', Carbon::now()->year)
             ->get()
-            ->groupBy('buyer_name')
-            ->map(function ($sales) {
-                return $sales->sum(function ($sale) {
-                    return $sale->saleItems->sum('weight_grams');
+            ->groupBy('location.name')
+            ->map(function ($transactions) {
+                return $transactions->sum(function ($tx) {
+                    return abs($tx->quantity_change_grams); // Ambil nilai absolut
                 }) / 1000; // Convert to kg
             })
             ->sortDesc()

@@ -35,6 +35,7 @@
                 </div>
             </div>
 
+
             {{-- Tab Content Container --}}
             <div class="space-y-8">
 
@@ -50,92 +51,65 @@
                             @csrf
 
                             <div class="space-y-6">
-                                {{-- Grade --}}
+                                {{-- Grade Select (changed from searchable to select) --}}
                                 <div>
-                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                        </svg>
+                                    <label class="block font-semibold text-gray-700 mb-2">
                                         Grade Perusahaan <span class="text-red-500">*</span>
                                     </label>
-                                    <select name="grade_company_id" required
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+
+                                    <select name="grade_company_id" id="grade_company_id" required
+                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                         <option value="">-- Pilih Grade --</option>
-                                        @foreach ($grades as $grade)
-                                            <option value="{{ $grade->id }}"
-                                                {{ old('grade_company_id') == $grade->id ? 'selected' : '' }}>
-                                                {{ $grade->name }}
+                                        @foreach($gradesWithStock as $g)
+                                            <option value="{{ $g['id'] }}" 
+                                                data-stock="{{ $g['total_stock_grams'] }}"
+                                                {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
+                                                {{ $g['name'] }} (Stok: {{ number_format($g['total_stock_grams'], 0, ',', '.') }} gr)
                                             </option>
                                         @endforeach
                                     </select>
+
+                                    {{-- Stock hint --}}
+                                    <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
+                                        Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
+                                    </p>
+
                                     @error('grade_company_id')
                                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
 
-                                {{-- Lokasi Asal - Fixed to Gudang Utama --}}
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                        Lokasi Asal <span class="text-red-500">*</span>
-                                    </label>
-
-                                    {{-- Tampilkan lokasi default --}}
-                                    <div
-                                        class="p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        {{ $defaultLocation->name ?? 'Gudang Utama' }}
-                                        <span class="text-xs text-gray-500 ml-auto">(Default)</span>
-                                    </div>
-
-                                    {{-- Input hidden untuk dikirim ke server --}}
-                                    <input type="hidden" name="location_id" value="{{ $defaultLocation->id ?? 1 }}">
-                                </div>
+                                {{-- Hidden Location (default Gudang Utama) --}}
+                                <input type="hidden" name="location_id" id="location_id" value="{{ $defaultLocation->id ?? 1 }}">
 
                                 {{-- Weight & Date --}}
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                            </svg>
+                                        <label class="block font-semibold text-gray-700 mb-2">
                                             Berat Penjualan (gram) <span class="text-red-500">*</span>
                                         </label>
-                                        <input type="number" name="weight_grams" value="{{ old('weight_grams') }}"
-                                            step="0.01" min="0" placeholder="Masukkan berat dalam gram" required
-                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                        <div class="flex gap-2">
+                                            <input type="number" name="weight_grams" id="weight_grams" 
+                                                step="0.01" min="0.01" required
+                                                value="{{ old('weight_grams') }}"
+                                                class="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                                placeholder="Masukkan berat dalam gram">
+                                            <button type="button" onclick="checkStock()" id="btnCheckStock"
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                                Cek Stok
+                                            </button>
+                                        </div>
+                                        <p id="stock-check-result" class="mt-2 text-sm hidden"></p>
                                         @error('weight_grams')
                                             <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
 
                                     <div>
-                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            Tanggal Penjualan
-                                            <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
-                                        </label>
-                                        <input type="date" name="transaction_date"
+                                        <label class="block font-semibold text-gray-700 mb-2">Tanggal Penjualan</label>
+                                        <input type="date" name="transaction_date" 
                                             value="{{ old('transaction_date', date('Y-m-d')) }}"
-                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                         @error('transaction_date')
                                             <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
@@ -153,7 +127,8 @@
                                         Catatan
                                         <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                     </label>
-                                    <textarea name="notes" rows="3" placeholder="Tambahkan catatan atau keterangan penjualan..."
+                                    <textarea name="notes" rows="3" 
+                                        placeholder="Tambahkan catatan atau keterangan penjualan..."
                                         class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none">{{ old('notes') }}</textarea>
                                     @error('notes')
                                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
@@ -224,45 +199,57 @@
                                             class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             Stok Berkurang
                                         </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Aksi
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @forelse($penjualanTransactions as $tx)
-                                        <tr class="hover:bg-gray-50 transition-colors duration-150">
+                                        <tr class="hover:bg-gray-50">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y H:i') }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ $tx->gradeCompany->name ?? '-' }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ $tx->location->name ?? '-' }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                                <div class="text-sm font-semibold text-red-600">
-                                                    {{ number_format(abs($tx->quantity_change_grams), 2) }} gr
-                                                </div>
-                                                <div class="text-xs text-gray-500">
-                                                    ({{ number_format(abs($tx->quantity_change_grams) / 1000, 2) }} kg)
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                                {{ number_format(abs($tx->quantity_change_grams), 2) }} gr
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                <div class="flex items-center justify-center gap-3">
+                                                    <a href="{{ route('barang.keluar.sell.edit', $tx->id) }}" 
+                                                        class="text-blue-600 hover:text-blue-800 font-medium">
+                                                        Edit
+                                                    </a>
+
+                                                    <form action="{{ route('barang.keluar.sell.destroy', $tx->id) }}" 
+                                                        method="POST" class="inline" 
+                                                        onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi penjualan ini?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" 
+                                                            class="text-red-600 hover:text-red-800 font-medium">
+                                                            Hapus
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="4" class="px-6 py-12 text-center">
-                                                <div class="flex flex-col items-center justify-center">
-                                                    <div
-                                                        class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                                        <svg class="w-8 h-8 text-gray-400" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2"
-                                                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                    </div>
-                                                    <p class="text-gray-500 font-medium">Belum ada daftar penjualan</p>
-                                                    <p class="text-gray-400 text-sm mt-1">Transaksi akan muncul setelah
-                                                        Anda melakukan penjualan</p>
+                                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                                <div class="flex flex-col items-center">
+                                                    <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                    <p class="text-lg font-medium text-gray-900 mb-1">Belum ada data penjualan</p>
+                                                    <p class="text-sm text-gray-500">Transaksi penjualan yang sudah dicatat akan muncul di sini</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -294,6 +281,7 @@
 
     @push('scripts')
         <script>
+            // Toggle History Tab Function
             function toggleHistoryTab() {
                 const formTab = document.getElementById('formTab');
                 const historyTab = document.getElementById('historyTab');
@@ -317,12 +305,131 @@
                 }
             }
 
+            // Grade Selection and Stock Check (simplified for select)
+            const gradeSelect = document.getElementById('grade_company_id');
+            const gradeStockValue = document.getElementById('grade-stock-value');
+
+            gradeSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.value) {
+                    const stock = selectedOption.dataset.stock || 0;
+                    gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
+                    gradeStockValue.classList.remove('text-red-600');
+                    gradeStockValue.classList.add('text-green-600');
+                    
+                    // Auto fetch exact stock from server
+                    fetchStockInfo(selectedOption.value);
+                } else {
+                    gradeStockValue.textContent = '-';
+                    gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                }
+            });
+
+            function fetchStockInfo(gradeId) {
+                fetch(`{{ route('barang.keluar.sell.stock_check') }}?grade_company_id=${gradeId}&location_id={{ $defaultLocation->id }}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.ok) {
+                            gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(data.available_grams) + ' gr';
+                            gradeStockValue.classList.remove('text-red-600');
+                            gradeStockValue.classList.add('text-green-600');
+                        } else {
+                            gradeStockValue.textContent = 'Error';
+                            gradeStockValue.classList.remove('text-green-600');
+                            gradeStockValue.classList.add('text-red-600');
+                        }
+                    })
+                    .catch(() => {
+                        gradeStockValue.textContent = 'Error cek stok';
+                        gradeStockValue.classList.remove('text-green-600');
+                        gradeStockValue.classList.add('text-red-600');
+                    });
+            }
+
+            function checkStock() {
+                const gradeId = document.getElementById('grade_company_id').value;
+                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+                const resultEl = document.getElementById('stock-check-result');
+                
+                if (!gradeId) {
+                    showStockResult('Pilih grade terlebih dahulu.', 'error');
+                    return;
+                }
+
+                if (weight <= 0) {
+                    showStockResult('Masukkan berat yang valid.', 'error');
+                    return;
+                }
+
+                // Show loading
+                showStockResult('Mengecek stok...', 'info');
+
+                fetch(`{{ route('barang.keluar.sell.stock_check') }}?grade_company_id=${gradeId}&location_id={{ $defaultLocation->id }}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.ok) {
+                            showStockResult('Gagal mengecek stok.', 'error');
+                            return;
+                        }
+
+                        const available = parseFloat(data.available_grams);
+                        if (available >= weight) {
+                            showStockResult(
+                                `✓ Stok mencukupi! Tersedia ${new Intl.NumberFormat('id-ID').format(available)} gram.`, 
+                                'success'
+                            );
+                        } else {
+                            showStockResult(
+                                `⚠ Stok tidak mencukupi! Hanya tersedia ${new Intl.NumberFormat('id-ID').format(available)} gram.`, 
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(() => {
+                        showStockResult('Gagal mengecek stok. Silakan coba lagi.', 'error');
+                    });
+            }
+
+            function showStockResult(message, type) {
+                const resultEl = document.getElementById('stock-check-result');
+                resultEl.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-blue-600');
+                
+                switch(type) {
+                    case 'success':
+                        resultEl.classList.add('text-green-600');
+                        break;
+                    case 'error':
+                        resultEl.classList.add('text-red-600');
+                        break;
+                    case 'info':
+                        resultEl.classList.add('text-blue-600');
+                        break;
+                }
+                
+                resultEl.textContent = message;
+            }
+
             // Check if there's a page parameter (from pagination), if yes, show history tab
             document.addEventListener('DOMContentLoaded', function() {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.has('page')) {
                     toggleHistoryTab();
                 }
+
+                // Set initial stock if grade is pre-selected
+                const selectedGrade = gradeSelect.value;
+                if (selectedGrade) {
+                    fetchStockInfo(selectedGrade);
+                }
+            });
+
+            // Reset form handler
+            document.querySelector('button[type="reset"]').addEventListener('click', function() {
+                setTimeout(() => {
+                    gradeStockValue.textContent = '-';
+                    gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                    document.getElementById('stock-check-result').classList.add('hidden');
+                }, 10);
             });
         </script>
     @endpush

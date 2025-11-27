@@ -166,7 +166,7 @@
             function confirmDelete(id) {
                 const modal = document.getElementById('deleteModal');
                 const form = document.getElementById('deleteForm');
-                form.action = `/admin/grading-goods/${id}`;
+                form.action = `grading-goods/delete/${id}`;
                 modal.classList.remove('hidden');
             }
 

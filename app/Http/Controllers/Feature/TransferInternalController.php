@@ -24,30 +24,56 @@ class TransferInternalController extends Controller
      */
     public function transferStep1(Request $request)
     {
-        $grades = GradeCompany::all();
+        // Ambil grades yang memiliki stok di Gudang Utama
+        $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+        if (!$gudangUtama) {
+            return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
+        }
+
+        // Ambil stok per grade di Gudang Utama menggunakan service
+        $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
+        
+        $gradesWithStock = $stockSummary->map(function ($stock) {
+            return [
+                'id' => $stock->grade_company_id,
+                'name' => $stock->gradeCompany->name ?? 'Unknown',
+                'total_stock_grams' => $stock->current_stock_grams,
+            ];
+        })->filter(function ($grade) {
+            return $grade['total_stock_grams'] > 0;
+        });
+
         $locations = Location::all();
 
-        // Riwayat khusus transfer internal
-        $query = InventoryTransaction::whereIn('transaction_type', ['TRANSFER_OUT', 'TRANSFER_IN'])
-            ->with(['gradeCompany', 'location', 'stockTransfer.fromLocation', 'stockTransfer.toLocation']);
+        $query = \App\Models\StockTransfer::with([
+            'gradeCompany', 
+            'fromLocation', 
+            'toLocation',
+            'inventoryTransactions' => function($q) {
+                $q->orderBy('transaction_type');
+            }
+        ]);
 
         // Filter berdasarkan grade jika ada
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
         }
 
-        // Filter berdasarkan lokasi jika ada
+        // Filter berdasarkan lokasi jika ada (from atau to)
         if ($request->filled('location_id')) {
-            $query->where('location_id', $request->location_id);
+            $query->where(function($q) use ($request) {
+                $q->where('from_location_id', $request->location_id)
+                  ->orWhere('to_location_id', $request->location_id);
+            });
         }
 
-        // Group by reference_id untuk menampilkan transfer sebagai satu kesatuan
-        $transferInternalTransactions = $query->latest('transaction_date')
+        $transferInternalTransactions = $query->latest('transfer_date')
             ->latest('id')
             ->paginate(10);
 
         return view('admin.barang-keluar.transfer-step1', compact(
-            'grades',
+            'gradesWithStock',
+            'gudangUtama',
             'locations',
             'transferInternalTransactions'
         ));
@@ -85,6 +111,23 @@ class TransferInternalController extends Controller
 
         if ($gudangUtama) {
             $validated['from_location_id'] = $gudangUtama->id;
+        }
+
+        $hasEnoughStock = $this->service->hasEnoughStock(
+            $validated['grade_company_id'], 
+            $validated['from_location_id'], 
+            $validated['weight_grams']
+        );
+
+        if (!$hasEnoughStock) {
+            $availableStock = $this->service->getAvailableStock(
+                $validated['grade_company_id'], 
+                $validated['from_location_id']
+            );
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', "Stok tidak mencukupi! Hanya tersedia " . number_format($availableStock, 2) . " gram.");
         }
 
         // Store in session
@@ -132,5 +175,22 @@ class TransferInternalController extends Controller
         return redirect()
             ->route('barang.keluar.transfer.step1')
             ->with('success', 'Transfer internal berhasil dicatat dan stok diperbarui.');
+    }
+
+    public function checkStock(Request $request)
+    {
+        $gradeId = (int) $request->query('grade_company_id');
+        $locationId = (int) $request->query('location_id');
+
+        if (!$gradeId || !$locationId) {
+            return response()->json(['ok' => false, 'message' => 'grade_company_id dan location_id required'], 400);
+        }
+
+        $available = $this->service->getAvailableStock($gradeId, $locationId);
+
+        return response()->json([
+            'ok' => true, 
+            'available_grams' => $available
+        ]);
     }
 }

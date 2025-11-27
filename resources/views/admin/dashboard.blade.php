@@ -95,7 +95,14 @@
             </div>
             @if(empty($jasaCuci['labels']))
                 <div class="text-center text-gray-500 mt-4">
-                    <p class="text-sm">Belum ada pengiriman ke jasa cuci bulan ini</p>
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-sm font-medium">Belum ada pengiriman ke jasa cuci</p>
+                        <p class="text-xs mt-1">Data akan muncul setelah ada transaksi penjualan ke lokasi jasa cuci</p>
+                    </div>
                 </div>
             @endif
         </div>
@@ -246,9 +253,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Jasa Cuci Chart - Doughnut Chart (Data Real)
-    const jasaCuciCtx = document.getElementById('jasaCuciChart').getContext('2d');
-    @if(!empty($jasaCuci['labels']))
+     const jasaCuciCtx = document.getElementById('jasaCuciChart').getContext('2d');
+    @if(!empty($jasaCuci['labels']) && count($jasaCuci['labels']) > 0)
         new Chart(jasaCuciCtx, {
             type: 'doughnut',
             data: {
@@ -282,11 +288,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     @else
-        // Show empty state
-        jasaCuciCtx.font = "16px Arial";
-        jasaCuciCtx.fillStyle = "#9CA3AF";
-        jasaCuciCtx.textAlign = "center";
-        jasaCuciCtx.fillText("Tidak ada data", jasaCuciCtx.canvas.width/2, jasaCuciCtx.canvas.height/2);
+        // Show better empty state
+        const ctx = jasaCuciCtx;
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = "14px Arial";
+        ctx.fillStyle = "#9CA3AF";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Tidak ada data transaksi", ctx.canvas.width/2, ctx.canvas.height/2 - 10);
+        ctx.font = "12px Arial";
+        ctx.fillText("ke jasa cuci bulan ini", ctx.canvas.width/2, ctx.canvas.height/2 + 10);
     @endif
 
     // Supplier Chart - Horizontal Bar (Data Real)

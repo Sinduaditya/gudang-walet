@@ -9,6 +9,7 @@ use App\Http\Controllers\Master\GradeCompanyController;
 use App\Http\Controllers\Feature\GradingGoodsController;
 use App\Http\Controllers\Master\GradeSupplierController;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Location;
 use App\Exports\GradeSupplierExport;
 use App\Http\Controllers\Feature\BarangKeluarController;
 use App\Http\Controllers\Feature\PenjualanController;
@@ -95,12 +96,14 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('/', [BarangKeluarController::class, 'index'])->name('index');
 
                 // ========== PENJUALAN ==========
-                Route::prefix('penjualan')
-                    ->name('sell.')
-                    ->group(function () {
-                        Route::get('/', [PenjualanController::class, 'sellForm'])->name('form');
-                        Route::post('/', [PenjualanController::class, 'sell'])->name('store');
-                    });
+                Route::get('sell', [PenjualanController::class, 'sellForm'])->name('sell.form');
+                Route::post('sell', [PenjualanController::class, 'sell'])->name('sell.store');
+                Route::get('sell/stock-check', [PenjualanController::class, 'checkStock'])->name('sell.stock_check');
+
+                // History actions
+                Route::get('sell/{id}/edit', [PenjualanController::class, 'edit'])->name('sell.edit');
+                Route::put('sell/{id}', [PenjualanController::class, 'update'])->name('sell.update');
+                Route::delete('sell/{id}', [PenjualanController::class, 'destroy'])->name('sell.destroy');
 
                 // ========== TRANSFER INTERNAL ==========
                 Route::prefix('transfer')
@@ -110,6 +113,7 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/step1', [TransferInternalController::class, 'storeTransferStep1'])->name('store-step1');
                         Route::get('/step2', [TransferInternalController::class, 'transferStep2'])->name('step2');
                         Route::post('/confirm', [TransferInternalController::class, 'transfer'])->name('store');
+                        Route::get('/stock-check', [TransferInternalController::class, 'checkStock'])->name('stock_check');
                     });
 
                 // ========== TRANSFER EXTERNAL ==========

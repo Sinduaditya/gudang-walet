@@ -39,28 +39,6 @@
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
-
-                        <div>
-                            <label for="receipt_item_id" class="block text-sm font-medium text-gray-700">Nama Grade Supplier (Pilih Item)</label>
-                            <select name="receipt_item_id" id="receipt_item_id"
-                                    class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('receipt_item_id') border-red-500 @enderror"
-                                    required>
-                                <option value="">-- Pilih Item --</option>
-                                @foreach($allReceiptItems as $item)
-                                    <option value="{{ $item->id }}"
-                                        data-tgl-datang="{{ $item->receipt_date ? \Carbon\Carbon::parse($item->receipt_date)->format('d/m/Y') : 'N/A' }}"
-                                        data-berat-gudang="{{ $item->warehouse_weight_grams ?? 0 }}"
-                                        {{ old('receipt_item_id', $sortingResult->receipt_item_id) == $item->id ? 'selected' : '' }}
-                                    >
-                                        {{ $item->grade_supplier_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('receipt_item_id')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
                         <div>
                             <label for="tgl_datang_display" class="block text-sm font-medium text-gray-500">Tanggal Kedatangan</label>
                             <input type="text" id="tgl_datang_display"
@@ -110,14 +88,6 @@
                             @enderror
                         </div>
 
-                        <div>
-                            <label for="selisih_display" class="block text-sm font-medium text-gray-500">% Selisih</label>
-                            <input type="text" id="selisih_display"
-                                   value="{{ $sortingResult->percentage_difference !== null ? number_format($sortingResult->percentage_difference, 2) . ' %' : '0 %' }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-gray-50 px-3 py-2 font-semibold text-gray-800"
-                                   readonly>
-                            <p id="selisih_hint" class="mt-1 text-xs text-gray-500">Warna merah menandakan selisih lebih dari 1.5%.</p>
-                        </div>
 
                         <div class="md:col-span-2">
                             <label for="notes" class="block text-sm font-medium text-gray-700">Catatan</label>
@@ -149,55 +119,25 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const itemSelect = document.getElementById('receipt_item_id');
-    const beratGradingInput = document.getElementById('weight_grams');
-
     const tglDatangDisplay = document.getElementById('tgl_datang_display');
     const beratGudangDisplay = document.getElementById('berat_gudang_display');
-    const selisihDisplay = document.getElementById('selisih_display');
 
-    function setSelisihStyle(value) {
-        // Remove color classes
-        selisihDisplay.classList.remove('text-red-600', 'text-green-600', 'text-gray-800');
-        // Apply color: red if abs > 1.5, green if <=1.5 and >0, neutral if zero
-        if (Math.abs(value) > 1.5) {
-            selisihDisplay.classList.add('text-red-600');
-        } else if (Math.abs(value) > 0) {
-            selisihDisplay.classList.add('text-green-600');
-        } else {
-            selisihDisplay.classList.add('text-gray-800');
-        }
-    }
-
-    function kalkulasiSelisih() {
-        const beratGudang = parseFloat(beratGudangDisplay.value) || 0;
-        const beratGrading = parseFloat(beratGradingInput.value) || 0;
-
-        let selisih = 0;
-        if (beratGudang > 0) {
-            selisih = ((beratGudang - beratGrading) / beratGudang) * 100;
-        }
-
-        selisihDisplay.value = selisih.toFixed(2) + ' %';
-        setSelisihStyle(selisih);
-    }
+    if (!itemSelect) return;
 
     // Saat item berubah: update tgl datang & berat gudang
     itemSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        const tglDatang = selectedOption.dataset.tglDatang || 'N/A';
-        const beratGudang = selectedOption.dataset.beratGudang || 0;
+        const tglDatang = selectedOption?.dataset?.tglDatang || 'N/A';
+        const beratGudang = selectedOption?.dataset?.beratGudang || 0;
 
-        tglDatangDisplay.value = tglDatang;
-        beratGudangDisplay.value = beratGudang;
-
-        kalkulasiSelisih();
+        if (tglDatangDisplay) tglDatangDisplay.value = tglDatang;
+        if (beratGudangDisplay) beratGudangDisplay.value = beratGudang;
     });
 
-    // Saat berat grading diketik
-    beratGradingInput.addEventListener('input', kalkulasiSelisih);
-
-    // Kalkulasi awal
-    kalkulasiSelisih();
+    // Trigger update awal jika sudah ada option terpilih
+    if (itemSelect.selectedIndex >= 0) {
+        itemSelect.dispatchEvent(new Event('change'));
+    }
 });
 </script>
 @endsection
