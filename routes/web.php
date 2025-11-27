@@ -17,6 +17,8 @@ use App\Http\Controllers\Feature\TransferInternalController;
 use App\Http\Controllers\Feature\TransferExternalController;
 use App\Http\Controllers\Master\StokController;
 use App\Http\Controllers\Feature\IncomingGoodsController;
+use App\Http\Controllers\Feature\ReceiveExternalController;
+use App\Http\Controllers\Feature\ReceiveInternalController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -124,6 +126,25 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
                         Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
                         Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
+                    });
+                // ========== RECEIVE INTERNAL ==========
+                Route::prefix('receive-internal')
+                    ->name('receive-internal.')
+                    ->group(function () {
+                        Route::get('/step1', [ReceiveInternalController::class, 'receiveInternalStep1'])->name('step1');
+                        Route::post('/step1', [ReceiveInternalController::class, 'storeReceiveInternalStep1'])->name('store-step1');
+                        Route::get('/step2', [ReceiveInternalController::class, 'receiveInternalStep2'])->name('step2');
+                        Route::post('/confirm', [ReceiveInternalController::class, 'receiveInternal'])->name('store');
+                    });
+
+                // ========== RECEIVE EXTERNAL ==========
+                Route::prefix('receive-external')
+                    ->name('receive-external.')
+                    ->group(function () {
+                        Route::get('/step1', [ReceiveExternalController::class, 'receiveExternalStep1'])->name('step1');
+                        Route::post('/step1', [ReceiveExternalController::class, 'storeReceiveExternalStep1'])->name('store-step1');
+                        Route::get('/step2', [ReceiveExternalController::class, 'receiveExternalStep2'])->name('step2');
+                        Route::post('/confirm', [ReceiveExternalController::class, 'receiveExternal'])->name('store');
                     });
             });
 
