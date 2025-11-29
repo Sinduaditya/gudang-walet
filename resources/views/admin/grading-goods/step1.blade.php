@@ -38,7 +38,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('grading-goods.step1.store') }}" id="mainForm">
+            <form method="POST" action="{{ route('grading-goods.store.step1') }}" id="mainForm">
                 @csrf
                 <div class="bg-white shadow-sm border rounded-lg">
 

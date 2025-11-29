@@ -19,17 +19,38 @@ class GradingGoodsService
         return GradeCompany::orderBy('name')->get();
     }
 
+    // ✅ FIX: Group by receipt_item_id untuk tampil satu baris per item
     public function getAllGrading($filters = [], $perPage = 15)
     {
-        $query = SortingResult::select(['sorting_results.id', 'sorting_results.grading_date', 'sorting_results.quantity', 'sorting_results.weight_grams', 'sorting_results.percentage_difference', 'sorting_results.notes', 'grades_company.name as grade_company_name', 'grades_supplier.name as grade_supplier_name', 'purchase_receipts.receipt_date', 'suppliers.name as supplier_name'])
-            ->leftJoin('grades_company', 'sorting_results.grade_company_id', '=', 'grades_company.id')
-            ->leftJoin('receipt_items', 'sorting_results.receipt_item_id', '=', 'receipt_items.id')
+        // ✅ Ambil data per receipt_item yang sudah digrading
+        $query = ReceiptItem::select([
+                'receipt_items.id as receipt_item_id',
+                'receipt_items.warehouse_weight_grams',
+                'receipt_items.supplier_weight_grams',
+                'receipt_items.status',
+                'grades_supplier.name as grade_supplier_name',
+                'purchase_receipts.receipt_date',
+                'suppliers.name as supplier_name',
+                DB::raw('MIN(sorting_results.grading_date) as grading_date'), // ✅ Tanggal grading pertama
+                DB::raw('COUNT(sorting_results.id) as total_grades'), // ✅ Jumlah grade hasil
+                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'), // ✅ Total berat grading
+                DB::raw('MIN(sorting_results.id) as first_sorting_id') // ✅ ID sorting pertama untuk detail
+            ])
+            ->join('sorting_results', 'receipt_items.id', '=', 'sorting_results.receipt_item_id')
             ->leftJoin('grades_supplier', 'receipt_items.grade_supplier_id', '=', 'grades_supplier.id')
             ->leftJoin('purchase_receipts', 'receipt_items.purchase_receipt_id', '=', 'purchase_receipts.id')
             ->leftJoin('suppliers', 'purchase_receipts.supplier_id', '=', 'suppliers.id')
-            ->orderBy('sorting_results.grading_date', 'desc')
-            ->orderBy('suppliers.name', 'asc')
-            ->orderBy('grades_company.name', 'asc');
+            ->groupBy([
+                'receipt_items.id',
+                'receipt_items.warehouse_weight_grams',
+                'receipt_items.supplier_weight_grams', 
+                'receipt_items.status',
+                'grades_supplier.name',
+                'purchase_receipts.receipt_date',
+                'suppliers.name'
+            ])
+            ->orderBy('grading_date', 'desc')
+            ->orderBy('suppliers.name', 'asc');
 
         // Apply filters
         if (!empty($filters['month'])) {
@@ -40,8 +61,84 @@ class GradingGoodsService
             $query->whereYear('sorting_results.grading_date', $filters['year']);
         }
 
-        // Return paginated results
-        return $query->paginate($perPage)->appends(request()->query());
+        $results = $query->paginate($perPage)->appends(request()->query());
+        
+        // ✅ Tambahkan perhitungan selisih
+        $results->getCollection()->transform(function ($item) {
+            $warehouseWeight = $item->warehouse_weight_grams ?? 0;
+            $totalGradingWeight = $item->total_grading_weight ?? 0;
+            
+            $item->grading_difference = $totalGradingWeight - $warehouseWeight;
+            
+            return $item;
+        });
+
+        return $results;
+    }
+
+    public function getAllGradingForExport($filters = [])
+    {
+        $query = ReceiptItem::select([
+                'receipt_items.id as receipt_item_id',
+                'receipt_items.warehouse_weight_grams',
+                'receipt_items.supplier_weight_grams',
+                'receipt_items.status',
+                'grades_supplier.name as grade_supplier_name',
+                'purchase_receipts.receipt_date',
+                'suppliers.name as supplier_name',
+                DB::raw('MIN(sorting_results.grading_date) as grading_date'),
+                DB::raw('COUNT(sorting_results.id) as total_grades'),
+                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'),
+                DB::raw('MIN(sorting_results.id) as first_sorting_id')
+            ])
+            ->join('sorting_results', 'receipt_items.id', '=', 'sorting_results.receipt_item_id')
+            ->leftJoin('grades_supplier', 'receipt_items.grade_supplier_id', '=', 'grades_supplier.id')
+            ->leftJoin('purchase_receipts', 'receipt_items.purchase_receipt_id', '=', 'purchase_receipts.id')
+            ->leftJoin('suppliers', 'purchase_receipts.supplier_id', '=', 'suppliers.id')
+            ->groupBy([
+                'receipt_items.id',
+                'receipt_items.warehouse_weight_grams',
+                'receipt_items.supplier_weight_grams', 
+                'receipt_items.status',
+                'grades_supplier.name',
+                'purchase_receipts.receipt_date',
+                'suppliers.name'
+            ])
+            ->orderBy('grading_date', 'desc')
+            ->orderBy('suppliers.name', 'asc');
+
+        // Apply filters
+        if (!empty($filters['month'])) {
+            $query->whereMonth('sorting_results.grading_date', $filters['month']);
+        }
+
+        if (!empty($filters['year'])) {
+            $query->whereYear('sorting_results.grading_date', $filters['year']);
+        }
+
+        // ✅ Get all results tanpa pagination
+        $results = $query->get();
+        
+        // ✅ Tambahkan perhitungan selisih
+        $results->transform(function ($item) {
+            $warehouseWeight = $item->warehouse_weight_grams ?? 0;
+            $totalGradingWeight = $item->total_grading_weight ?? 0;
+            
+            $item->grading_difference = $totalGradingWeight - $warehouseWeight;
+            
+            return $item;
+        });
+
+        return $results;
+    }
+
+    // ✅ NEW: Get all sorting results for same receipt item (untuk detail)
+    public function getSortingResultsByReceiptItem($receiptItemId)
+    {
+        return SortingResult::with(['gradeCompany', 'receiptItem.gradeSupplier', 'receiptItem.purchaseReceipt.supplier'])
+            ->where('receipt_item_id', $receiptItemId)
+            ->orderBy('weight_grams', 'desc')
+            ->get();
     }
 
     public function getReceiptItemsByGradeSupplierName($name = null)
@@ -54,13 +151,13 @@ class GradingGoodsService
             'grades_supplier.image_url as grade_supplier_image_url',
             'purchase_receipts.id as purchase_receipt_id',
             'purchase_receipts.receipt_date',
-            'suppliers.name as supplier_name', // Tambahkan ini
+            'suppliers.name as supplier_name',
         )
             ->join('purchase_receipts', 'receipt_items.purchase_receipt_id', '=', 'purchase_receipts.id')
             ->leftJoin('grades_supplier', 'receipt_items.grade_supplier_id', '=', 'grades_supplier.id')
-            ->leftJoin('suppliers', 'purchase_receipts.supplier_id', '=', 'suppliers.id') // Tambahkan JOIN ini
+            ->leftJoin('suppliers', 'purchase_receipts.supplier_id', '=', 'suppliers.id')
             ->where('receipt_items.status', ReceiptItem::STATUS_MENTAH)
-            ->whereDoesntHave('sortingResults') // Belum di-grading
+            ->whereDoesntHave('sortingResults')
             ->orderBy('purchase_receipts.receipt_date', 'desc');
 
         if (!empty($name)) {
@@ -88,14 +185,80 @@ class GradingGoodsService
 
     public function getSortingResultWithRelations($id)
     {
-        return SortingResult::with(['receiptItem.purchaseReceipt', 'receiptItem.gradeSupplier', 'gradeCompany'])->find($id);
+        return SortingResult::with(['receiptItem.purchaseReceipt.supplier', 'receiptItem.gradeSupplier', 'gradeCompany'])->find($id);
+    }
+
+    public function updateMultipleSortingResults($receiptItemId, array $gradesData, $globalNotes = null)
+    {
+        try {
+            return DB::transaction(function () use ($receiptItemId, $gradesData, $globalNotes) {
+                $receiptItem = ReceiptItem::findOrFail($receiptItemId);
+                
+                // Hapus semua sorting results lama untuk receipt item ini
+                $oldSortingResults = SortingResult::where('receipt_item_id', $receiptItemId)->get();
+                foreach ($oldSortingResults as $oldResult) {
+                    $this->deleteInventoryFromGrading($oldResult->id);
+                }
+                SortingResult::where('receipt_item_id', $receiptItemId)->delete();
+
+                $createdResults = [];
+
+                // Buat sorting result baru untuk setiap grade
+                foreach ($gradesData as $index => $gradeData) {
+                    $gradeCompany = GradeCompany::firstOrCreate(
+                        ['name' => $gradeData['grade_company_name']], 
+                        ['name' => $gradeData['grade_company_name']]
+                    );
+
+                    $warehouseWeight = $receiptItem->warehouse_weight_grams;
+                    
+                    // ✅ FIX: Pastikan casting ke integer
+                    $weightGrams = (int) $gradeData['weight_grams'];
+                    $quantity = (int) $gradeData['quantity'];
+                    
+                    $percentageDifference = $warehouseWeight > 0 
+                        ? abs((($weightGrams - $warehouseWeight) / $warehouseWeight) * 100) 
+                        : 0;
+
+                    // Gabungkan catatan
+                    $notes = collect([
+                        $globalNotes, 
+                        $gradeData['notes'] ?? null, 
+                        $index > 0 ? 'Grade ke-' . ($index + 1) . ' dari grading berganda' : null
+                    ])->filter()->implode('. ');
+
+                    $sortingResult = SortingResult::create([
+                        'grading_date' => $gradeData['grading_date'],
+                        'receipt_item_id' => $receiptItemId,
+                        'quantity' => $quantity, // ✅ Sudah integer
+                        'grade_company_id' => $gradeCompany->id,
+                        'weight_grams' => $weightGrams, // ✅ Sudah integer
+                        'percentage_difference' => round($percentageDifference, 2),
+                        'notes' => $notes,
+                        'created_by' => auth()->id(),
+                    ]);
+
+                    $this->createInventoryFromGrading($sortingResult);
+                    $createdResults[] = $sortingResult;
+                }
+
+                return $createdResults;
+            });
+        } catch (Exception $e) {
+            Log::error('Gagal update multiple grading: ' . $e->getMessage(), [
+                'receipt_item_id' => $receiptItemId,
+                'error' => $e->getMessage(),
+                'grades_data' => $gradesData
+            ]);
+            throw $e;
+        }
     }
 
     public function updateSortingResultStep2Multiple($sortingResultId, array $grades, $globalNotes = null)
     {
         try {
             return DB::transaction(function () use ($sortingResultId, $grades, $globalNotes) {
-                // Ambil data original SEBELUM dihapus (tanpa withTrashed)
+                // Ambil data original SEBELUM dihapus
                 $originalSortingResult = SortingResult::with(['receiptItem', 'receiptItem.purchaseReceipt.supplier'])->find($sortingResultId);
 
                 if (!$originalSortingResult) {
@@ -118,8 +281,12 @@ class GradingGoodsService
                     // Cari atau buat grade company
                     $gradeCompany = GradeCompany::firstOrCreate(['name' => $gradeData['grade_company_name']], ['name' => $gradeData['grade_company_name']]);
 
-                    // Hitung persentase difference berdasarkan berat asal
-                    $percentageDifference = $originalWeight > 0 ? (($gradeData['weight_grams'] - $originalWeight) / $originalWeight) * 100 : 0;
+                    // ✅ FIX: Pastikan casting ke integer
+                    $weightGrams = (int) $gradeData['weight_grams'];
+                    $quantity = (int) $gradeData['quantity'];
+                    
+                    // ✅ FIX: Hitung persentase berdasarkan berat asal gudang (bukan selisih dengan original)
+                    $percentageDifference = $originalWeight > 0 ? abs((($weightGrams - $originalWeight) / $originalWeight) * 100) : 0;
 
                     // Gabungkan catatan
                     $notes = collect([$globalNotes, $gradeData['notes'] ?? null, $index > 0 ? 'Grade ke-' . ($index + 1) . ' dari grading berganda' : null])
@@ -130,16 +297,15 @@ class GradingGoodsService
                     $sortingResult = SortingResult::create([
                         'grading_date' => $gradingDate,
                         'receipt_item_id' => $receiptItemId,
-                        'quantity' => $gradeData['quantity'],
+                        'quantity' => $quantity, // ✅ Sudah integer
                         'grade_company_id' => $gradeCompany->id,
-                        'weight_grams' => $gradeData['weight_grams'],
+                        'weight_grams' => $weightGrams, // ✅ Sudah integer
                         'percentage_difference' => round($percentageDifference, 2),
                         'notes' => $notes,
                         'created_by' => auth()->id(),
                     ]);
 
                     $this->createInventoryFromGrading($sortingResult);
-
 
                     $createdResults[] = $sortingResult;
                 }
@@ -177,9 +343,10 @@ class GradingGoodsService
             $warehouseWeight = floatval($receiptItem->warehouse_weight_grams);
             $gradingWeight = floatval($data['weight_grams']);
 
+            // ✅ FIX: Hitung persentase selisih dengan berat gudang (selalu positif)
             $percentage = null;
             if ($warehouseWeight > 0) {
-                $percentage = round((($warehouseWeight - $gradingWeight) / $warehouseWeight) * 100, 2);
+                $percentage = round(abs(($gradingWeight - $warehouseWeight) / $warehouseWeight) * 100, 2);
             }
 
             $sorting->grading_date = $data['grading_date'];
@@ -191,36 +358,36 @@ class GradingGoodsService
             $sorting->percentage_difference = $percentage;
             $sorting->save();
 
-            // ✅ FIX: Gunakan updateInventoryFromGrading(), bukan createInventoryFromGrading()
             $this->updateInventoryFromGrading($sorting);
 
             return $sorting;
         });
     }
 
-
-    public function deleteGrading($sortingResultId)
+    public function deleteGrading($receiptItemId)
     {
-        $sorting = SortingResult::findOrFail($sortingResultId);
+        try {
+            return DB::transaction(function () use ($receiptItemId) {
+                // ✅ Hapus semua sorting results untuk receipt item ini
+                $sortingResults = SortingResult::where('receipt_item_id', $receiptItemId)->get();
+                
+                foreach ($sortingResults as $sorting) {
+                    $this->deleteInventoryFromGrading($sorting->id);
+                    $sorting->delete();
+                }
 
-        // simpan receipt_item_id sebelum hapus
-        $receiptItemId = $sorting->receipt_item_id;
+                // ✅ Kembalikan status receipt item ke MENTAH
+                $receiptItem = ReceiptItem::find($receiptItemId);
+                if ($receiptItem) {
+                    $receiptItem->update(['status' => ReceiptItem::STATUS_MENTAH]);
+                }
 
-        $this->deleteInventoryFromGrading($sortingResultId);
-
-        // hapus sorting result
-        $sorting->delete();
-
-        // jika tidak ada sorting result tersisa untuk receipt_item ini, kembalikan status ke MENTAH
-        $remaining = SortingResult::where('receipt_item_id', $receiptItemId)->count();
-        if ($remaining === 0) {
-            $receiptItem = ReceiptItem::find($receiptItemId);
-            if ($receiptItem) {
-                $receiptItem->update(['status' => ReceiptItem::STATUS_MENTAH]);
-            }
+                return true;
+            });
+        } catch (Exception $e) {
+            Log::error('Gagal hapus grading: ' . $e->getMessage());
+            throw $e;
         }
-
-        return true;
     }
 
     private function createInventoryFromGrading(SortingResult $sortingResult)
@@ -234,7 +401,7 @@ class GradingGoodsService
             'transaction_date' => $sortingResult->grading_date,
             'grade_company_id' => $sortingResult->grade_company_id,
             'location_id' => $defaultLocation->id,
-            'quantity_change_grams' => abs($sortingResult->weight_grams), // Positif (stok masuk)
+            'quantity_change_grams' => abs($sortingResult->weight_grams),
             'transaction_type' => 'GRADING_IN',
             'reference_id' => $sortingResult->id,
             'created_by' => $sortingResult->created_by,
@@ -243,9 +410,6 @@ class GradingGoodsService
         Log::info('Inventory created from grading', ['sorting_result_id' => $sortingResult->id]);
     }
 
-    /**
-     * Update inventory transaction dari sorting result
-     */
     private function updateInventoryFromGrading(SortingResult $sortingResult)
     {
         $inventoryTx = InventoryTransaction::where('transaction_type', 'GRADING_IN')
@@ -263,9 +427,6 @@ class GradingGoodsService
         }
     }
 
-    /**
-     * Hapus inventory transaction dari sorting result
-     */
     private function deleteInventoryFromGrading($sortingResultId)
     {
         InventoryTransaction::where('transaction_type', 'GRADING_IN')

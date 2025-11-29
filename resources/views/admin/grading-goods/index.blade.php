@@ -80,6 +80,7 @@
                 </form>
             </div>
 
+            <!-- ✅ Updated Table with Enhanced Columns -->
             <div class="bg-white shadow-sm border rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -87,42 +88,97 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">No</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Grading</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nama by Supplier</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Kedatangan</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Jumlah Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat setelah Grading (g)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Grade Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat Gudang (gr)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Grading (gr)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Selisih (gr)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Persentase (%)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($gradings as $i => $grading)
-                                <tr>
+                                @php
+                                    // ✅ Hitung selisih dan persentase
+                                    $warehouseWeight = $grading->warehouse_weight_grams ?? 0;
+                                    $totalGradingWeight = $grading->total_grading_weight ?? 0;
+                                    $difference = $totalGradingWeight - $warehouseWeight;
+                                    $percentage = $warehouseWeight > 0 ? abs($difference / $warehouseWeight) * 100 : 0;
+                                @endphp
+                                <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $gradings->firstItem() + $i }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ $grading->grading_date ? \Carbon\Carbon::parse($grading->grading_date)->format('d/m/Y') : '-' }}
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $grading->grade_supplier_name ?? '-' }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ $grading->receipt_date ? \Carbon\Carbon::parse($grading->receipt_date)->format('d/m/Y') : '-' }}
+                                    <td class="px-6 py-4 text-sm text-gray-900 font-medium">
+                                        {{ $grading->supplier_name ?? '-' }}
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ number_format($grading->quantity ?? 0) }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ number_format($grading->weight_grams ?? 0) }}
+                                        {{ $grading->grade_supplier_name ?? '-' }}
+                                        <div class="text-xs text-gray-500">
+                                            {{ $grading->total_grades }} grade hasil
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 font-mono">
+                                        {{ number_format($warehouseWeight, 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 font-mono font-semibold text-blue-600">
+                                        {{ number_format($totalGradingWeight, 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        @if ($difference < 0)
+                                            <div class="flex flex-col">
+                                                <span class="text-red-600 font-semibold font-mono">{{ number_format($difference, 0, ',', '.') }}</span>
+                                                <span class="text-xs text-red-500">(susut)</span>
+                                            </div>
+                                        @elseif($difference > 0)
+                                            <div class="flex flex-col">
+                                                <span class="text-green-600 font-semibold font-mono">+{{ number_format($difference, 0, ',', '.') }}</span>
+                                                <span class="text-xs text-green-500">(kelebihan)</span>
+                                            </div>
+                                        @else
+                                            <div class="flex flex-col">
+                                                <span class="text-gray-600 font-mono">0</span>
+                                                <span class="text-xs text-gray-500">(sama)</span>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        @php
+                                            $percentageFormatted = ($percentage == floor($percentage))
+                                                ? number_format($percentage, 0, ',', '.')
+                                                : number_format($percentage, 1, ',', '.');
+                                            
+                                            $percentageClass = 'text-gray-600';
+                                            if ($percentage > 5) {
+                                                $percentageClass = 'text-red-600 font-bold bg-red-50 px-1 py-0.5 rounded';
+                                            } elseif ($percentage > 1) {
+                                                $percentageClass = 'text-orange-600 font-semibold';
+                                            } elseif ($percentage > 0) {
+                                                $percentageClass = 'text-green-600';
+                                            }
+                                        @endphp
+                                        <span class="{{ $percentageClass }} font-semibold">
+                                            {{ $percentageFormatted }}%
+                                            @if($percentage > 5) ⚠️ @endif
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         <div class="flex items-center gap-2">
-                                            <a href="{{ route('grading-goods.show', $grading->id) }}"
-                                                class="text-blue-600 hover:text-blue-800">Lihat</a>
-                                            <a href="{{ route('grading-goods.edit', $grading->id) }}"
-                                                class="text-yellow-600 hover:text-yellow-800">Edit</a>
-                                            <button onclick="confirmDelete({{ $grading->id }})"
-                                                class="text-red-600 hover:text-red-800">Hapus</button>
+                                            {{-- ✅ FIX: Gunakan receipt_item_id --}}
+                                            <a href="{{ route('grading-goods.show', $grading->receipt_item_id) }}"
+                                                class="text-blue-600 hover:text-blue-800 font-medium">Detail</a>
+                                            <a href="{{ route('grading-goods.edit', $grading->receipt_item_id) }}"
+                                                class="text-yellow-600 hover:text-yellow-800 font-medium">Edit</a>
+                                            <button onclick="confirmDelete({{ $grading->receipt_item_id }})"
+                                                class="text-red-600 hover:text-red-800 font-medium">Hapus</button>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                                         @if(request('month') || request('year'))
                                             Tidak ada data grading untuk filter yang dipilih.
                                         @else

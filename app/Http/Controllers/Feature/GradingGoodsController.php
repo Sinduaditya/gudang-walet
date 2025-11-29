@@ -32,15 +32,17 @@ class GradingGoodsController extends Controller
         return view('admin.grading-goods.index', compact('gradings'));
     }
 
-    public function show($id)
+    public function show($receiptItemId)
     {
-        $grading = $this->gradingGoodsService->getSortingResultWithRelations($id);
+        $allGradingResults = $this->gradingGoodsService->getSortingResultsByReceiptItem($receiptItemId);
 
-        if (!$grading) {
+        if ($allGradingResults->isEmpty()) {
             return abort(404, 'Grading not found');
         }
 
-        return view('admin.grading-goods.show', compact('grading'));
+        $grading = $allGradingResults->first();
+
+        return view('admin.grading-goods.show', compact('grading', 'allGradingResults'));
     }
 
     public function createStep1(Request $request)
@@ -120,35 +122,66 @@ class GradingGoodsController extends Controller
         return Excel::download($export, $fileName);
     }
 
-    public function edit($id)
+    // ✅ FIX: Edit berdasarkan receipt_item_id untuk edit semua grading
+    public function edit($receiptItemId)
     {
-        $sortingResult = $this->gradingGoodsService->getSortingResultWithRelations($id);
-        if (!$sortingResult) {
+        // ✅ Ambil semua sorting results untuk receipt item ini
+        $allGradingResults = $this->gradingGoodsService->getSortingResultsByReceiptItem($receiptItemId);
+
+        if ($allGradingResults->isEmpty()) {
             return redirect()->route('grading-goods.index')->with('error', 'Data grading tidak ditemukan.');
         }
 
-        $allReceiptItems = $this->gradingGoodsService->getReceiptItemsByGradeSupplierName(null);
-
+        $receiptItem = $allGradingResults->first()->receiptItem;
         $allGradeCompanies = $this->gradingGoodsService->getAllGradeCompanies();
 
-        return view('admin.grading-goods.edit', compact('sortingResult', 'allReceiptItems', 'allGradeCompanies'));
+        return view('admin.grading-goods.edit', compact('allGradingResults', 'receiptItem', 'allGradeCompanies'));
     }
 
-    public function update(UpdateGradingRequest $request, $id)
+    // ✅ FIX: Update semua grading untuk receipt item
+    public function update(Request $request, $receiptItemId)
     {
+        // ✅ FIX: Validasi yang lebih fleksibel untuk integer
+        $request->validate([
+            'grades.*.grading_date' => 'required|date',
+            'grades.*.grade_company_name' => 'required|string|max:255',
+            'grades.*.quantity' => 'required|numeric|min:0', // ✅ numeric instead of integer
+            'grades.*.weight_grams' => 'required|numeric|min:0', // ✅ numeric instead of integer
+            'grades.*.notes' => 'nullable|string',
+            'global_notes' => 'nullable|string',
+        ]);
+
         try {
-            $this->gradingGoodsService->updateFullGrading($id, $request->validated());
+            $grades = $request->input('grades');
+            $globalNotes = $request->input('global_notes');
+
+            // ✅ FIX: Convert string ke integer sebelum disimpan
+            $processedGrades = [];
+            foreach ($grades as $grade) {
+                $processedGrades[] = [
+                    'grading_date' => $grade['grading_date'],
+                    'grade_company_name' => $grade['grade_company_name'],
+                    'quantity' => (int) $grade['quantity'], // ✅ Cast ke integer
+                    'weight_grams' => (int) $grade['weight_grams'], // ✅ Cast ke integer
+                    'notes' => $grade['notes'] ?? null,
+                ];
+            }
+
+            $this->gradingGoodsService->updateMultipleSortingResults($receiptItemId, $processedGrades, $globalNotes);
 
             return redirect()->route('grading-goods.index')->with('success', 'Data grading berhasil diperbarui.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    public function destroy($id)
+    // ✅ FIX: Delete berdasarkan receipt_item_id
+    public function destroy($receiptItemId)
     {
         try {
-            $this->gradingGoodsService->deleteGrading($id);
+            $this->gradingGoodsService->deleteGrading($receiptItemId);
             return redirect()->route('grading-goods.index')->with('success', 'Data grading berhasil dihapus.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());

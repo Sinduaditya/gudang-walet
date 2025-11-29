@@ -29,7 +29,10 @@ class TransferExternalController extends Controller
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        // ✅ Ambil stok seperti transfer internal
+        // ✅ Ambil semua grade companies untuk dropdown
+        $grades = GradeCompany::orderBy('name')->get();
+
+        // ✅ Ambil stok di Gudang Utama untuk validasi
         $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
         
         $gradesWithStock = $stockSummary->map(function ($stock) {
@@ -42,19 +45,17 @@ class TransferExternalController extends Controller
             return $grade['total_stock_grams'] > 0;
         });
 
-        // ✅ FILTER: Hanya tampilkan lokasi Jasa Cuci (selain IDM/DMK)
-        $locations = Location::where('name', 'NOT LIKE', '%IDM%')
+        // ✅ FIXED: Filter lokasi Jasa Cuci (BUKAN IDM/DMK, BUKAN Gudang Utama)
+        $jasaCuciLocations = Location::where('name', 'NOT LIKE', '%IDM%')
             ->where('name', 'NOT LIKE', '%DMK%')
-            ->where('name', 'NOT LIKE', '%Gudang Utama%')
+            ->where('name', '!=', 'Gudang Utama')
+            ->orderBy('name')
             ->get();
 
+        // ✅ FIXED: Query riwayat transfer eksternal (kirim ke jasa cuci)
         $query = InventoryTransaction::where('transaction_type', 'EXTERNAL_TRANSFER_OUT')
             ->with(['gradeCompany', 'location', 'stockTransfer.toLocation'])
-            ->whereHas('stockTransfer.toLocation', function($q) {
-                // Filter yang tujuannya bukan IDM/DMK
-                $q->where('name', 'NOT LIKE', '%IDM%')
-                  ->where('name', 'NOT LIKE', '%DMK%');
-            });
+            ->where('location_id', $gudangUtama->id); // ✅ Yang keluar dari Gudang Utama
 
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
@@ -71,9 +72,10 @@ class TransferExternalController extends Controller
             ->paginate(10);
 
         return view('admin.barang-keluar.external-transfer-step1', compact(
-            'gradesWithStock',
+            'grades',
+            'gradesWithStock', 
             'gudangUtama',
-            'locations',
+            'jasaCuciLocations', // ✅ Rename untuk clarity
             'transferExternalTransactions'
         ));
     }
@@ -91,19 +93,19 @@ class TransferExternalController extends Controller
             'notes' => 'nullable|string|max:500',
         ], [
             'grade_company_id.required' => 'Grade harus dipilih',
-            'to_location_id.required' => 'Lokasi tujuan harus dipilih',
+            'to_location_id.required' => 'Lokasi tujuan (Jasa Cuci) harus dipilih',
             'weight_grams.required' => 'Berat harus diisi',
             'weight_grams.min' => 'Berat minimal 0.01 gram',
         ]);
 
-        // ✅ Set from_location_id ke Gudang Utama
+        // ✅ FIXED: Set from_location_id ke Gudang Utama (lokasi asal)
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['from_location_id'] = $gudangUtama->id;
 
-        // ✅ Validasi stok mencukupi
+        // ✅ Validasi stok mencukupi di Gudang Utama
         $hasEnoughStock = $this->service->hasEnoughStock(
             $validated['grade_company_id'], 
-            $validated['from_location_id'], 
+            $validated['from_location_id'], // Gudang Utama
             $validated['weight_grams']
         );
 
@@ -115,7 +117,7 @@ class TransferExternalController extends Controller
             
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Stok tidak mencukupi! Hanya tersedia " . number_format($availableStock, 2) . " gram.");
+                ->with('error', "Stok di Gudang Utama tidak mencukupi! Hanya tersedia " . number_format($availableStock, 2) . " gram.");
         }
 
         $request->session()->put('external_transfer_step1', $validated);

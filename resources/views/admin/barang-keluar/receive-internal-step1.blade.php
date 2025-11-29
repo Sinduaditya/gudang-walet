@@ -98,7 +98,7 @@
                     <form action="{{ route('barang.keluar.receive-internal.store-step1') }}" method="POST" class="p-6">
                         @csrf
 
-                        <div class="space-y-6">
+                         <div class="space-y-6">
                             {{-- Grade --}}
                             <div>
                                 <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -108,7 +108,7 @@
                                     </svg>
                                     Grade Perusahaan <span class="text-red-500">*</span>
                                 </label>
-                                <select name="grade_company_id" required
+                                <select name="grade_company_id" id="gradeSelect" required
                                         class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
                                     <option value="">-- Pilih Grade --</option>
                                     @foreach ($grades as $grade)
@@ -121,6 +121,33 @@
                                 @error('grade_company_id')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
+
+                                {{-- ✅ Stock Info Display --}}
+                                <div id="stockInfo" class="hidden mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4-8-4m16 0v10l-8 4-8-4V7"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <h4 class="text-sm font-semibold text-blue-800 mb-2">Stok Tersedia di Lokasi Internal</h4>
+                                            <div id="stockLoading" class="hidden">
+                                                <div class="flex items-center gap-2 text-sm text-blue-600">
+                                                    <svg class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                    </svg>
+                                                    Mengecek stok...
+                                                </div>
+                                            </div>
+                                            <div id="stockContent">
+                                                <!-- Content akan diisi via JavaScript -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Locations --}}
@@ -136,7 +163,7 @@
                                             </svg>
                                             Lokasi Asal (Internal) <span class="text-red-500">*</span>
                                         </label>
-                                        <select name="from_location_id" required
+                                        <select name="from_location_id" id="fromLocationSelect" required
                                                 class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
                                             <option value="">-- Pilih Lokasi Asal --</option>
                                             @foreach ($locations as $loc)
@@ -157,6 +184,21 @@
                                         @error('from_location_id')
                                             <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
+
+                                        {{-- ✅ Specific Location Stock Display --}}
+                                        <div id="specificLocationStock" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                    <span class="text-sm font-medium text-green-800">Stok Tersedia:</span>
+                                                </div>
+                                                <div id="specificStockAmount" class="text-sm font-bold text-green-700">
+                                                    <!-- Will be filled by JavaScript -->
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div>
@@ -198,9 +240,15 @@
                                         </svg>
                                         Berat Diterima (gram) <span class="text-red-500">*</span>
                                     </label>
-                                    <input type="number" name="weight_grams" value="{{ old('weight_grams') }}"
+                                    <input type="number" name="weight_grams" id="weightInput" value="{{ old('weight_grams') }}"
                                            step="0.01" min="0.01" placeholder="Masukkan berat dalam gram" required
                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                                    
+                                    {{-- ✅ Real-time Stock Validation --}}
+                                    <div id="stockValidation" class="hidden mt-2">
+                                        <!-- Will be filled by JavaScript -->
+                                    </div>
+
                                     @error('weight_grams')
                                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
@@ -377,6 +425,197 @@
 
 @push('scripts')
 <script>
+    let currentStockData = {};
+    let availableStockAtLocation = 0;
+
+    // ✅ Function untuk load stok ketika grade dipilih
+    function loadStockForGrade(gradeId, fromLocationId = null) {
+        if (!gradeId) {
+            document.getElementById('stockInfo').classList.add('hidden');
+            return;
+        }
+
+        const stockInfo = document.getElementById('stockInfo');
+        const stockLoading = document.getElementById('stockLoading');
+        const stockContent = document.getElementById('stockContent');
+
+        stockInfo.classList.remove('hidden');
+        stockLoading.classList.remove('hidden');
+        stockContent.innerHTML = '';
+
+        const url = new URL('{{ route("barang.keluar.receive-internal.stock_check") }}');
+        url.searchParams.append('grade_company_id', gradeId);
+        if (fromLocationId) {
+            url.searchParams.append('from_location_id', fromLocationId);
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                stockLoading.classList.add('hidden');
+                
+                if (data.success) {
+                    currentStockData = data;
+                    displayStockInfo(data);
+                    updateSpecificLocationStock();
+                    validateWeight();
+                } else {
+                    stockContent.innerHTML = `<div class="text-sm text-red-600">${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                stockLoading.classList.add('hidden');
+                stockContent.innerHTML = '<div class="text-sm text-red-600">Error loading stock data</div>';
+                console.error('Error:', error);
+            });
+    }
+
+    // ✅ Display stok info
+    function displayStockInfo(data) {
+        const stockContent = document.getElementById('stockContent');
+        
+        if (!data.has_stock) {
+            stockContent.innerHTML = `
+                <div class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-medium">Tidak ada stok untuk grade ${data.grade_name} di lokasi internal</span>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        let html = `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-blue-100 border border-blue-200 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-semibold text-blue-800">Total Stok ${data.grade_name}:</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-700">${data.formatted_total_stock}</div>
+                        <div class="text-sm text-blue-600">(${data.total_stock_kg} kg)</div>
+                    </div>
+                </div>
+        `;
+
+        if (data.locations.length > 1) {
+            html += `<div class="text-xs font-medium text-gray-600 mb-2">Rincian per lokasi:</div>`;
+            
+            data.locations.forEach(location => {
+                html += `
+                    <div class="flex items-center justify-between p-2 bg-white border border-gray-200 rounded text-sm">
+                        <span class="text-gray-700">${location.location_name}</span>
+                        <span class="font-medium text-gray-900">${location.formatted_stock} (${location.stock_kg} kg)</span>
+                    </div>
+                `;
+            });
+        }
+
+        html += `</div>`;
+        stockContent.innerHTML = html;
+    }
+
+    // ✅ Update stok spesifik lokasi
+    function updateSpecificLocationStock() {
+        const fromLocationSelect = document.getElementById('fromLocationSelect');
+        const specificLocationStock = document.getElementById('specificLocationStock');
+        const specificStockAmount = document.getElementById('specificStockAmount');
+
+        const selectedLocationId = fromLocationSelect.value;
+        
+        if (!selectedLocationId || !currentStockData.locations) {
+            specificLocationStock.classList.add('hidden');
+            availableStockAtLocation = 0;
+            return;
+        }
+
+        const locationStock = currentStockData.locations.find(
+            loc => loc.location_id == selectedLocationId
+        );
+
+        if (locationStock) {
+            availableStockAtLocation = locationStock.stock_grams;
+            specificStockAmount.textContent = `${locationStock.formatted_stock} (${locationStock.stock_kg} kg)`;
+            specificLocationStock.classList.remove('hidden');
+        } else {
+            availableStockAtLocation = 0;
+            specificLocationStock.classList.add('hidden');
+        }
+
+        validateWeight();
+    }
+
+    // ✅ Validasi berat input
+    function validateWeight() {
+        const weightInput = document.getElementById('weightInput');
+        const stockValidation = document.getElementById('stockValidation');
+        
+        const inputWeight = parseFloat(weightInput.value) || 0;
+        
+        if (!availableStockAtLocation || inputWeight <= 0) {
+            stockValidation.classList.add('hidden');
+            return;
+        }
+
+        stockValidation.classList.remove('hidden');
+        
+        if (inputWeight > availableStockAtLocation) {
+            // ❌ Tidak cukup stok
+            stockValidation.innerHTML = `
+                <div class="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Stok tidak cukup! Tersedia: <strong>${availableStockAtLocation.toLocaleString()} gram</strong></span>
+                </div>
+            `;
+        } else {
+            // ✅ Stok mencukupi
+            const remaining = availableStockAtLocation - inputWeight;
+            stockValidation.innerHTML = `
+                <div class="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Stok cukup! Sisa setelah pengambilan: <strong>${remaining.toLocaleString()} gram</strong></span>
+                </div>
+            `;
+        }
+    }
+
+    // ✅ Event Listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        const gradeSelect = document.getElementById('gradeSelect');
+        const fromLocationSelect = document.getElementById('fromLocationSelect');
+        const weightInput = document.getElementById('weightInput');
+
+        // Grade selection change
+        gradeSelect.addEventListener('change', function() {
+            loadStockForGrade(this.value);
+        });
+
+        // Location selection change  
+        fromLocationSelect.addEventListener('change', function() {
+            updateSpecificLocationStock();
+        });
+
+        // Weight input change
+        weightInput.addEventListener('input', function() {
+            validateWeight();
+        });
+
+        // Load initial stock if grade is already selected
+        if (gradeSelect.value) {
+            loadStockForGrade(gradeSelect.value);
+        }
+    });
+    
     function toggleHistoryTab() {
         const formTab = document.getElementById('formTab');
         const historyTab = document.getElementById('historyTab');

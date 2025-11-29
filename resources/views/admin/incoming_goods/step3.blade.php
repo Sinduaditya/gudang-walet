@@ -1,3 +1,4 @@
+{{-- filepath: d:\Learning\Laravel\gudang_walet\resources\views\admin\incoming_goods\step3.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Input Barang Masuk - Step 3')
@@ -49,7 +50,7 @@
 
         <form action="{{ route('incoming-goods.store-final') }}" method="POST">
             @csrf
- incoming-goods.store-final
+
             <!-- Grade Cards -->
             <div class="bg-white rounded-lg shadow-sm border mb-6">
                 <div class="px-6 py-4 border-b">
@@ -104,17 +105,36 @@
                                        step="1"
                                        placeholder="Masukkan berat"
                                        onkeyup="calculateDifference({{ $grade->id }}, {{ $step2Data['berat_awal'][$grade->id] ?? 0 }})"
+                                       oninput="calculateDifference({{ $grade->id }}, {{ $step2Data['berat_awal'][$grade->id] ?? 0 }})"
                                        class="w-full rounded-md py-2 px-3 border-gray-300 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                                 @error('berat_akhir.' . $grade->id)
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            <!-- Selisih Display (Auto Calculate) -->
-                            <div id="selisih_{{ $grade->id }}" class="p-3 rounded-md bg-gray-50 hidden">
-                                <div class="flex justify-between text-sm">
-                                    <span class="font-medium text-gray-600">Selisih:</span>
-                                    <span id="selisih_value_{{ $grade->id }}" class="font-semibold"></span>
+                            <!-- ✅ Selisih & Persentase Display (Auto Calculate) -->
+                            <div id="selisih_{{ $grade->id }}" class="hidden">
+                                <!-- Selisih Container -->
+                                <div class="p-3 rounded-md bg-gray-50 mb-3">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="font-medium text-gray-600">Selisih:</span>
+                                        <span id="selisih_value_{{ $grade->id }}" class="font-semibold"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Rasio & Persentase Container -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <!-- Rasio Desimal -->
+                                    <div class="p-2 rounded-md border border-gray-200 text-center">
+                                        <div class="text-xs text-gray-500 mb-1">Rasio Desimal</div>
+                                        <div id="decimal_value_{{ $grade->id }}" class="font-bold text-lg font-mono"></div>
+                                    </div>
+                                    
+                                    <!-- Persentase -->
+                                    <div class="p-2 rounded-md border border-gray-200 text-center">
+                                        <div class="text-xs text-gray-500 mb-1">Persentase</div>
+                                        <div id="percentage_value_{{ $grade->id }}" class="font-bold text-lg"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -147,36 +167,137 @@
 @push('scripts')
 <script>
 function calculateDifference(gradeId, beratAwal) {
-    const beratAkhirInput = document.getElementById('berat_akhir_' + gradeId);
-    const selisihSpan = document.getElementById('selisih_' + gradeId);
+    console.log('=== DEBUG CALCULATION ===');
+    console.log('Grade ID:', gradeId, 'Berat Awal:', beratAwal);
     
-    if (beratAkhirInput && selisihSpan) {
+    const beratAkhirInput = document.getElementById('berat_akhir_' + gradeId);
+    const selisihDiv = document.getElementById('selisih_' + gradeId);
+    const selisihSpan = document.getElementById('selisih_value_' + gradeId);
+    const decimalSpan = document.getElementById('decimal_value_' + gradeId);  
+    const percentageSpan = document.getElementById('percentage_value_' + gradeId);
+    
+    if (beratAkhirInput && selisihDiv && selisihSpan && decimalSpan && percentageSpan) {
         const beratAkhir = parseFloat(beratAkhirInput.value) || 0;
-        const selisih = beratAkhir - beratAwal; // Berat Akhir - Berat Awal
         
-        // Format tampilan selisih
-        let displayText = '';
-        let colorClass = '';
+        console.log('Berat Akhir:', beratAkhir);
         
-        if (selisih < 0) {
-            displayText = number_format(selisih) + ' Gram (susut)';
-            colorClass = 'text-red-600';
-        } else if (selisih > 0) {
-            displayText = '+' + number_format(selisih) + ' Gram (bertambah)';
-            colorClass = 'text-green-600';
-        } else {
-            displayText = '0 Gram (sama)';
-            colorClass = 'text-gray-600';
+        // ✅ Skip calculation jika input kosong
+        if (beratAkhir === 0) {
+            selisihDiv.classList.add('hidden');
+            return;
         }
         
-        selisihSpan.textContent = displayText;
-        selisihSpan.className = colorClass + ' font-medium';
+        const selisih = beratAkhir - beratAwal; // Berat Akhir - Berat Awal
+        
+        let percentage = 0;
+        let decimal = 0;
+        
+        if (beratAwal > 0) {
+            decimal = selisih / beratAwal; // ✅ Rasio desimal (bisa negatif/positif)
+            percentage = Math.abs(decimal) * 100; // ✅ Persentase selalu positif
+        }
+        
+        console.log('Selisih:', selisih);
+        console.log('Decimal:', decimal);
+        console.log('Percentage:', percentage);
+        
+        // ✅ Format tampilan selisih dengan status Indonesia
+        let selisihText = '';
+        let selisihClass = '';
+        
+        if (selisih < 0) {
+            selisihText = number_format_id(Math.abs(selisih)) + ' gr (susut)';
+            selisihClass = 'text-red-600';
+        } else if (selisih > 0) {
+            selisihText = '+' + number_format_id(selisih) + ' gr (kelebihan)';
+            selisihClass = 'text-green-600';
+        } else {
+            selisihText = '0 gr (sama)';
+            selisihClass = 'text-gray-600';
+        }
+        
+        // ✅ Format tampilan DESIMAL (3 desimal, bisa negatif/positif)
+        let decimalText = '';
+        let decimalClass = '';
+        
+        if (decimal === 0) {
+            decimalText = '0,000';
+            decimalClass = 'text-gray-600';
+        } else {
+            const formattedDecimal = decimal.toFixed(3).replace('.', ','); // ✅ Koma sebagai desimal
+            
+            // ✅ Warning jika rasio > 0.05 (5%)
+            if (Math.abs(decimal) > 0.05) {
+                decimalClass = 'text-red-600 bg-red-50 px-1 py-0.5 rounded';
+                decimalText = formattedDecimal + ' ⚠️';
+            } else if (Math.abs(decimal) > 0.01) { // 1%
+                decimalClass = 'text-orange-600';
+                decimalText = formattedDecimal;
+            } else {
+                decimalClass = 'text-green-600';
+                decimalText = formattedDecimal;
+            }
+        }
+        
+        // ✅ Format tampilan PERSENTASE (bulat atau 1 desimal, selalu positif)
+        let percentageText = '';
+        let percentageClass = '';
+        
+        if (percentage === 0) {
+            percentageText = '0%';
+            percentageClass = 'text-gray-600';
+        } else {
+            // ✅ Jika bulat, tampilkan tanpa desimal. Jika tidak, tampilkan 1 desimal
+            const formattedPercentage = percentage % 1 === 0 
+                ? Math.round(percentage).toString()
+                : percentage.toFixed(1).replace('.', ','); // ✅ Koma sebagai desimal
+            
+            // ✅ Warning jika persentase > 5%
+            if (percentage > 5) {
+                percentageClass = 'text-red-600 bg-red-50 px-1 py-0.5 rounded';
+                percentageText = formattedPercentage + '% ⚠️';
+            } else if (percentage > 1) { // 1%
+                percentageClass = 'text-orange-600';
+                percentageText = formattedPercentage + '%';
+            } else {
+                percentageClass = 'text-green-600';
+                percentageText = formattedPercentage + '%';
+            }
+        }
+        
+        // ✅ Update tampilan
+        selisihSpan.textContent = selisihText;
+        selisihSpan.className = selisihClass + ' font-medium';
+        
+        decimalSpan.textContent = decimalText;
+        decimalSpan.className = decimalClass + ' font-mono';
+        
+        percentageSpan.textContent = percentageText;
+        percentageSpan.className = percentageClass + ' font-medium';
+        
+        // ✅ Show container
+        selisihDiv.classList.remove('hidden');
+        
+        console.log('Final decimal:', decimalText);
+        console.log('Final percentage:', percentageText);
+        console.log('=== END DEBUG ===');
     }
 }
 
-function number_format(number) {
+// ✅ Format angka dengan titik sebagai pemisah ribuan (Indonesia)
+function number_format_id(number) {
     return new Intl.NumberFormat('id-ID').format(number);
 }
+
+// ✅ Auto-calculate saat page load jika ada old values
+document.addEventListener('DOMContentLoaded', function() {
+    @foreach($grades as $grade)
+        const input_{{ $grade->id }} = document.getElementById('berat_akhir_{{ $grade->id }}');
+        if (input_{{ $grade->id }} && input_{{ $grade->id }}.value) {
+            calculateDifference({{ $grade->id }}, {{ $step2Data['berat_awal'][$grade->id] ?? 0 }});
+        }
+    @endforeach
+});
 </script>
 @endpush
 @endsection

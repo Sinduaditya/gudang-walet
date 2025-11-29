@@ -23,10 +23,9 @@ class ReceiveExternalController extends Controller
      */
     public function receiveExternalStep1(Request $request)
     {
-        // ✅ FIX: Ambil semua grades (untuk penerimaan tidak perlu cek stok)
         $grades = GradeCompany::all();
         
-        // ✅ Hanya lokasi Jasa Cuci (selain IDM/DMK) sebagai asal
+        // ✅ Hanya lokasi Jasa Cuci (selain IDM/DMK/Gudang Utama) sebagai asal
         $locations = Location::where('name', 'NOT LIKE', '%IDM%')
             ->where('name', 'NOT LIKE', '%DMK%')
             ->where('name', 'NOT LIKE', '%Gudang Utama%')
@@ -56,6 +55,69 @@ class ReceiveExternalController extends Controller
     }
 
     /**
+     * ✅ NEW: AJAX endpoint untuk cek stok yang dikirim ke jasa cuci
+     */
+    public function checkExternalStock(Request $request)
+    {
+        $gradeCompanyId = $request->get('grade_company_id');
+        $fromLocationId = $request->get('from_location_id');
+
+        if (!$gradeCompanyId || !$fromLocationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Grade dan lokasi asal harus dipilih'
+            ]);
+        }
+
+        // ✅ Cek berapa stok yang pernah dikirim ke lokasi tersebut
+        $sentStock = $this->getSentStockToLocation($gradeCompanyId, $fromLocationId);
+        $receivedStock = $this->getReceivedStockFromLocation($gradeCompanyId, $fromLocationId);
+        $pendingStock = $sentStock - $receivedStock;
+
+        $grade = GradeCompany::find($gradeCompanyId);
+        $location = Location::find($fromLocationId);
+
+        return response()->json([
+            'success' => true,
+            'grade_name' => $grade ? $grade->name : 'Unknown',
+            'location_name' => $location ? $location->name : 'Unknown',
+            'sent_stock_grams' => $sentStock,
+            'received_stock_grams' => $receivedStock,
+            'pending_stock_grams' => $pendingStock,
+            'formatted_sent_stock' => number_format($sentStock, 0, ',', '.') . ' gr',
+            'formatted_received_stock' => number_format($receivedStock, 0, ',', '.') . ' gr',
+            'formatted_pending_stock' => number_format($pendingStock, 0, ',', '.') . ' gr',
+            'has_pending_stock' => $pendingStock > 0,
+        ]);
+    }
+
+    /**
+     * ✅ Get total stok yang pernah dikirim ke lokasi external
+     */
+    private function getSentStockToLocation(int $gradeCompanyId, int $locationId): float
+    {
+        return InventoryTransaction::where('grade_company_id', $gradeCompanyId)
+            ->where('transaction_type', 'EXTERNAL_TRANSFER_OUT')
+            ->whereHas('stockTransfer', function($q) use ($locationId) {
+                $q->where('to_location_id', $locationId);
+            })
+            ->sum('quantity_change_grams'); // Sudah negatif, jadi hasil negatif
+    }
+
+    /**
+     * ✅ Get total stok yang sudah diterima dari lokasi external
+     */
+    private function getReceivedStockFromLocation(int $gradeCompanyId, int $locationId): float
+    {
+        return InventoryTransaction::where('grade_company_id', $gradeCompanyId)
+            ->where('transaction_type', 'RECEIVE_EXTERNAL_IN')
+            ->whereHas('stockTransfer', function($q) use ($locationId) {
+                $q->where('from_location_id', $locationId);
+            })
+            ->sum('quantity_change_grams'); // Positif
+    }
+
+    /**
      * Store Step 1 data to session
      */
     public function storeReceiveExternalStep1(Request $request)
@@ -70,7 +132,21 @@ class ReceiveExternalController extends Controller
             'grade_company_id.required' => 'Grade harus dipilih',
             'from_location_id.required' => 'Lokasi asal harus dipilih',
             'weight_grams.required' => 'Berat harus diisi',
+            'weight_grams.min' => 'Berat minimal 0.01 gram',
         ]);
+
+        // ✅ Validasi tidak boleh melebihi stok yang pending
+        $sentStock = abs($this->getSentStockToLocation($validated['grade_company_id'], $validated['from_location_id']));
+        $receivedStock = $this->getReceivedStockFromLocation($validated['grade_company_id'], $validated['from_location_id']);
+        $pendingStock = $sentStock - $receivedStock;
+
+        if ($validated['weight_grams'] > $pendingStock) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'weight_grams' => "Berat melebihi stok yang pending. Maksimal: " . number_format($pendingStock, 2) . " gram"
+                ]);
+        }
 
         // Set to_location_id ke Gudang Utama
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();

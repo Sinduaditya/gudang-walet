@@ -54,6 +54,62 @@ class ReceiveInternalController extends Controller
     }
 
     /**
+     * ✅ NEW: AJAX endpoint untuk cek stok per grade di lokasi internal
+     */
+    public function checkInternalStock(Request $request)
+    {
+        $gradeCompanyId = $request->get('grade_company_id');
+        $fromLocationId = $request->get('from_location_id');
+
+        if (!$gradeCompanyId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Grade company ID diperlukan'
+            ]);
+        }
+
+        // ✅ Get semua lokasi internal jika from_location_id tidak specified
+        if ($fromLocationId) {
+            $locations = Location::where('id', $fromLocationId)->get();
+        } else {
+            $locations = Location::where('name', 'LIKE', '%IDM%')
+                ->orWhere('name', 'LIKE', '%DMK%')
+                ->get();
+        }
+
+        $stockData = [];
+        $totalStock = 0;
+
+        foreach ($locations as $location) {
+            $stock = $this->service->getAvailableStock($gradeCompanyId, $location->id);
+            
+            if ($stock > 0) {
+                $stockData[] = [
+                    'location_id' => $location->id,
+                    'location_name' => $location->name,
+                    'stock_grams' => $stock,
+                    'stock_kg' => round($stock / 1000, 2),
+                    'formatted_stock' => number_format($stock, 0, ',', '.') . ' gr'
+                ];
+                $totalStock += $stock;
+            }
+        }
+
+        // ✅ Get grade name
+        $grade = GradeCompany::find($gradeCompanyId);
+
+        return response()->json([
+            'success' => true,
+            'grade_name' => $grade ? $grade->name : 'Unknown',
+            'total_stock_grams' => $totalStock,
+            'total_stock_kg' => round($totalStock / 1000, 2),
+            'formatted_total_stock' => number_format($totalStock, 0, ',', '.') . ' gr',
+            'locations' => $stockData,
+            'has_stock' => $totalStock > 0
+        ]);
+    }
+
+    /**
      * Store Step 1 data to session
      */
     public function storeReceiveInternalStep1(Request $request)
@@ -69,6 +125,20 @@ class ReceiveInternalController extends Controller
             'from_location_id.required' => 'Lokasi asal harus dipilih',
             'weight_grams.required' => 'Berat harus diisi',
         ]);
+
+        // ✅ Validasi stok tersedia
+        $availableStock = $this->service->getAvailableStock(
+            $validated['grade_company_id'], 
+            $validated['from_location_id']
+        );
+
+        if ($availableStock < $validated['weight_grams']) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'weight_grams' => "Stok tidak mencukupi. Tersedia: " . number_format($availableStock, 2) . " gram"
+                ]);
+        }
 
         // Set to_location_id ke Gudang Utama
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();

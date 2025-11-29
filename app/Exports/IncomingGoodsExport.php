@@ -38,10 +38,12 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
         foreach ($receipts as $receipt) {
             // Add individual items
             foreach ($receipt->receiptItems as $index => $item) {
-                // Calculate percentage
+                // ✅ FIX: Calculate percentage correctly (selalu positif)
                 $percentage = 0;
+                $decimal = 0;
                 if ($item->supplier_weight_grams > 0) {
-                    $percentage = ($item->difference_grams / $item->supplier_weight_grams) * 100;
+                    $decimal = $item->difference_grams / $item->supplier_weight_grams; // Bisa negatif/positif
+                    $percentage = abs($decimal) * 100; // ✅ Selalu positif untuk persentase
                 }
 
                 $this->data->push([
@@ -53,7 +55,8 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                     'supplier_weight' => $item->supplier_weight_grams,
                     'warehouse_weight' => $item->warehouse_weight_grams,
                     'difference' => $item->difference_grams,
-                    'percentage' => $percentage,
+                    'percentage' => $percentage, // ✅ Selalu positif
+                    'decimal_ratio' => $decimal, // ✅ Tambah rasio desimal
                     'is_first_item' => $index === 0,
                     'receipt_id' => $receipt->id,
                 ]);
@@ -63,7 +66,10 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
             $totalSupplierWeight = $receipt->receiptItems->sum('supplier_weight_grams');
             $totalWarehouseWeight = $receipt->receiptItems->sum('warehouse_weight_grams');
             $totalDifference = $receipt->receiptItems->sum('difference_grams');
-            $totalPercentage = $totalSupplierWeight > 0 ? ($totalDifference / $totalSupplierWeight) * 100 : 0;
+            
+            // ✅ FIX: Total percentage juga selalu positif
+            $totalDecimal = $totalSupplierWeight > 0 ? ($totalDifference / $totalSupplierWeight) : 0;
+            $totalPercentage = abs($totalDecimal) * 100; // ✅ Selalu positif
 
             $this->data->push([
                 'type' => 'total',
@@ -74,7 +80,8 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                 'supplier_weight' => $totalSupplierWeight,
                 'warehouse_weight' => $totalWarehouseWeight,
                 'difference' => $totalDifference,
-                'percentage' => $totalPercentage,
+                'percentage' => $totalPercentage, // ✅ Selalu positif
+                'decimal_ratio' => $totalDecimal, // ✅ Tambah total rasio desimal
                 'is_first_item' => false,
                 'receipt_id' => $receipt->id,
             ]);
@@ -90,6 +97,7 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                 'warehouse_weight' => '',
                 'difference' => '',
                 'percentage' => '',
+                'decimal_ratio' => '',
                 'is_first_item' => false,
                 'receipt_id' => $receipt->id,
             ]);
@@ -123,6 +131,7 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
             'Berat Datang (gr)',
             'Berat Timbang (gr)',
             'Selisih (gr)',
+            'Rasio Desimal', // ✅ Tambah kolom rasio desimal
             'Persentase (%)'
         ];
     }
@@ -130,23 +139,43 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
     public function map($row): array
     {
         if ($row['type'] === 'separator') {
-            return ['', '', '', '', '', '', '', ''];
+            return ['', '', '', '', '', '', '', '', ''];
         }
 
-        // Format percentage
+        // ✅ FIX: Format persentase (bulat atau 1 desimal, selalu positif)
         $percentageFormatted = '';
         if ($row['type'] === 'item' || $row['type'] === 'total') {
-            if (abs($row['percentage']) > 0.001) {
-                $percentageFormatted = number_format($row['percentage'], 3, ',', '.');
+            if ($row['percentage'] > 0) {
+                // ✅ Jika bulat, tampilkan tanpa desimal. Jika tidak, 1 desimal
+                if ($row['percentage'] == floor($row['percentage'])) {
+                    $percentageFormatted = number_format($row['percentage'], 0, ',', '.');
+                } else {
+                    $percentageFormatted = number_format($row['percentage'], 1, ',', '.');
+                }
+            } else {
+                $percentageFormatted = '0';
             }
         }
 
-        // Format difference with sign
+        // ✅ FIX: Format rasio desimal (3 desimal, bisa negatif/positif)
+        $decimalFormatted = '';
+        if ($row['type'] === 'item' || $row['type'] === 'total') {
+            if (isset($row['decimal_ratio']) && abs($row['decimal_ratio']) > 0.0001) {
+                $decimalFormatted = number_format($row['decimal_ratio'], 3, ',', '.');
+            } else {
+                $decimalFormatted = '0,000';
+            }
+        }
+
+        // ✅ Format selisih dengan status Indonesia
         $differenceFormatted = '';
         if ($row['type'] === 'item' || $row['type'] === 'total') {
-            $differenceFormatted = $row['difference'];
             if ($row['difference'] > 0) {
-                $differenceFormatted = '+' . $row['difference'];
+                $differenceFormatted = '+' . number_format($row['difference'], 0, ',', '.') . ' (kelebihan)';
+            } elseif ($row['difference'] < 0) {
+                $differenceFormatted = number_format($row['difference'], 0, ',', '.') . ' (susut)';
+            } else {
+                $differenceFormatted = '0 (sama)';
             }
         }
 
@@ -155,10 +184,11 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
             ($row['is_first_item'] && $row['type'] === 'item') ? optional($row['unloading_date'])->format('d/m/Y') : '',
             ($row['is_first_item'] && $row['type'] === 'item') ? $row['supplier_name'] : '',
             $row['grade_name'],
-            $row['supplier_weight'] !== '' ? number_format($row['supplier_weight']) : '',
-            $row['warehouse_weight'] !== '' ? number_format($row['warehouse_weight']) : '',
+            $row['supplier_weight'] !== '' ? number_format($row['supplier_weight'], 0, ',', '.') : '', // ✅ Format Indonesia
+            $row['warehouse_weight'] !== '' ? number_format($row['warehouse_weight'], 0, ',', '.') : '', // ✅ Format Indonesia
             $differenceFormatted,
-            $percentageFormatted
+            $decimalFormatted, // ✅ Rasio desimal
+            $percentageFormatted // ✅ Persentase
         ];
     }
 
@@ -197,9 +227,12 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                     ]
                 ];
             } elseif ($row['type'] === 'item') {
-                // Style based on difference for items
+                // ✅ Style based on percentage threshold (5%)
+                $percentage = (float) $row['percentage'];
                 $difference = (float) $row['difference'];
-                if ($difference < 0) {
+                
+                if ($percentage > 5) { // ✅ 5% threshold
+                    // ✅ Red styling untuk selisih dan persentase di atas 5%
                     $styles['G' . $rowNumber] = [
                         'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
                         'fill' => [
@@ -208,23 +241,33 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                         ]
                     ];
                     $styles['H' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true]
-                    ];
-                } elseif ($difference > 0) {
-                    $styles['G' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => '059669'], 'bold' => true],
+                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
                         'fill' => [
                             'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => 'D1FAE5']
+                            'startColor' => ['rgb' => 'FEE2E2']
                         ]
                     ];
-                    $styles['H' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => '059669'], 'bold' => true]
+                    $styles['I' . $rowNumber] = [
+                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
+                        'fill' => [
+                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'FEE2E2']
+                        ]
+                    ];
+                } elseif ($difference < 0) {
+                    // ✅ Light red untuk susut tapi di bawah 5%
+                    $styles['G' . $rowNumber] = [
+                        'font' => ['color' => ['rgb' => 'DC2626']]
+                    ];
+                } elseif ($difference > 0) {
+                    // ✅ Green untuk kelebihan
+                    $styles['G' . $rowNumber] = [
+                        'font' => ['color' => ['rgb' => '059669']]
                     ];
                 }
 
                 // Border untuk item rows
-                $styles['A' . $rowNumber . ':H' . $rowNumber] = [
+                $styles['A' . $rowNumber . ':I' . $rowNumber] = [
                     'borders' => [
                         'allBorders' => [
                             'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,

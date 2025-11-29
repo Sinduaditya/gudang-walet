@@ -68,8 +68,7 @@
                 </div>
             </dl>
         </div>
-
-        <form method="POST" action="{{ route('grading-goods.step2.store', ['id' => $sortingResult->id]) }}" id="gradingForm">
+        <form method="POST" action="{{ route('grading-goods.store.step2', ['id' => $sortingResult->id]) }}" id="gradingForm">
             @csrf
 
             <!-- Grading Results -->
