@@ -1,4 +1,3 @@
-{{-- resources/views/admin/barang-keluar/receive-internal-step2.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Terima Barang Internal - Konfirmasi')

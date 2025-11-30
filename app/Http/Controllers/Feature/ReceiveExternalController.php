@@ -25,13 +25,11 @@ class ReceiveExternalController extends Controller
     {
         $grades = GradeCompany::all();
         
-        // ✅ Hanya lokasi Jasa Cuci (selain IDM/DMK/Gudang Utama) sebagai asal
         $locations = Location::where('name', 'NOT LIKE', '%IDM%')
             ->where('name', 'NOT LIKE', '%DMK%')
             ->where('name', 'NOT LIKE', '%Gudang Utama%')
             ->get();
 
-        // Riwayat penerimaan eksternal
         $query = InventoryTransaction::where('transaction_type', 'RECEIVE_EXTERNAL_IN')
             ->with(['gradeCompany', 'location', 'stockTransfer.fromLocation'])
             ->whereHas('stockTransfer.fromLocation', function($q) {
@@ -55,7 +53,7 @@ class ReceiveExternalController extends Controller
     }
 
     /**
-     * ✅ NEW: AJAX endpoint untuk cek stok yang dikirim ke jasa cuci
+     * AJAX endpoint untuk cek stok yang dikirim ke jasa cuci
      */
     public function checkExternalStock(Request $request)
     {
@@ -69,7 +67,6 @@ class ReceiveExternalController extends Controller
             ]);
         }
 
-        // ✅ Cek berapa stok yang pernah dikirim ke lokasi tersebut
         $sentStock = $this->getSentStockToLocation($gradeCompanyId, $fromLocationId);
         $receivedStock = $this->getReceivedStockFromLocation($gradeCompanyId, $fromLocationId);
         $pendingStock = $sentStock - $receivedStock;
@@ -92,7 +89,7 @@ class ReceiveExternalController extends Controller
     }
 
     /**
-     * ✅ Get total stok yang pernah dikirim ke lokasi external
+     * Get total stok yang pernah dikirim ke lokasi external
      */
     private function getSentStockToLocation(int $gradeCompanyId, int $locationId): float
     {
@@ -105,7 +102,7 @@ class ReceiveExternalController extends Controller
     }
 
     /**
-     * ✅ Get total stok yang sudah diterima dari lokasi external
+     * Get total stok yang sudah diterima dari lokasi external
      */
     private function getReceivedStockFromLocation(int $gradeCompanyId, int $locationId): float
     {
@@ -135,7 +132,6 @@ class ReceiveExternalController extends Controller
             'weight_grams.min' => 'Berat minimal 0.01 gram',
         ]);
 
-        // ✅ Validasi tidak boleh melebihi stok yang pending
         $sentStock = abs($this->getSentStockToLocation($validated['grade_company_id'], $validated['from_location_id']));
         $receivedStock = $this->getReceivedStockFromLocation($validated['grade_company_id'], $validated['from_location_id']);
         $pendingStock = $sentStock - $receivedStock;

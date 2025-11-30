@@ -20,7 +20,6 @@ class IncomingGoodsController extends Controller
 
     public function index(Request $request)
     {
-        // Get filter parameters
         $filters = [
             'month' => $request->get('month'),
             'year' => $request->get('year'),
@@ -158,7 +157,6 @@ class IncomingGoodsController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // Validate request - Perbaiki nama field
             $validated = $request->validate([
                 'supplier_id' => 'required|exists:suppliers,id',
                 'receipt_date' => 'required|date',
@@ -204,7 +202,6 @@ class IncomingGoodsController extends Controller
     public function export(Request $request)
     {
         try {
-            // Ambil filter dari request
             $filters = [
                 'month' => $request->get('month'),
                 'year' => $request->get('year'),

@@ -19,10 +19,8 @@ class GradingGoodsService
         return GradeCompany::orderBy('name')->get();
     }
 
-    // ✅ FIX: Group by receipt_item_id untuk tampil satu baris per item
     public function getAllGrading($filters = [], $perPage = 15)
     {
-        // ✅ Ambil data per receipt_item yang sudah digrading
         $query = ReceiptItem::select([
                 'receipt_items.id as receipt_item_id',
                 'receipt_items.warehouse_weight_grams',
@@ -31,10 +29,10 @@ class GradingGoodsService
                 'grades_supplier.name as grade_supplier_name',
                 'purchase_receipts.receipt_date',
                 'suppliers.name as supplier_name',
-                DB::raw('MIN(sorting_results.grading_date) as grading_date'), // ✅ Tanggal grading pertama
-                DB::raw('COUNT(sorting_results.id) as total_grades'), // ✅ Jumlah grade hasil
-                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'), // ✅ Total berat grading
-                DB::raw('MIN(sorting_results.id) as first_sorting_id') // ✅ ID sorting pertama untuk detail
+                DB::raw('MIN(sorting_results.grading_date) as grading_date'), 
+                DB::raw('COUNT(sorting_results.id) as total_grades'), 
+                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'), 
+                DB::raw('MIN(sorting_results.id) as first_sorting_id') 
             ])
             ->join('sorting_results', 'receipt_items.id', '=', 'sorting_results.receipt_item_id')
             ->leftJoin('grades_supplier', 'receipt_items.grade_supplier_id', '=', 'grades_supplier.id')
@@ -63,7 +61,6 @@ class GradingGoodsService
 
         $results = $query->paginate($perPage)->appends(request()->query());
         
-        // ✅ Tambahkan perhitungan selisih
         $results->getCollection()->transform(function ($item) {
             $warehouseWeight = $item->warehouse_weight_grams ?? 0;
             $totalGradingWeight = $item->total_grading_weight ?? 0;
@@ -116,10 +113,8 @@ class GradingGoodsService
             $query->whereYear('sorting_results.grading_date', $filters['year']);
         }
 
-        // ✅ Get all results tanpa pagination
         $results = $query->get();
         
-        // ✅ Tambahkan perhitungan selisih
         $results->transform(function ($item) {
             $warehouseWeight = $item->warehouse_weight_grams ?? 0;
             $totalGradingWeight = $item->total_grading_weight ?? 0;
@@ -132,7 +127,6 @@ class GradingGoodsService
         return $results;
     }
 
-    // ✅ NEW: Get all sorting results for same receipt item (untuk detail)
     public function getSortingResultsByReceiptItem($receiptItemId)
     {
         return SortingResult::with(['gradeCompany', 'receiptItem.gradeSupplier', 'receiptItem.purchaseReceipt.supplier'])

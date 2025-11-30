@@ -13,8 +13,6 @@ class StokController extends Controller
     {
         $perPage = 10; // Tampilkan 15 data per tabel (lebih standar untuk pagination)
 
-        // 1. Total Stok per Grade (Tab 1 - Ringkasan)
-        // Tidak perlu pagination karena ini data agregat/ringkasan
         $totalStokPerGrade = InventoryTransaction::select(
                 'grade_company_id',
                 DB::raw('SUM(quantity_change_grams) as total_grams')

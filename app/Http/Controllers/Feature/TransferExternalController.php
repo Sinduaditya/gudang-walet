@@ -29,10 +29,8 @@ class TransferExternalController extends Controller
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        // ✅ Ambil semua grade companies untuk dropdown
         $grades = GradeCompany::orderBy('name')->get();
 
-        // ✅ Ambil stok di Gudang Utama untuk validasi
         $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
         
         $gradesWithStock = $stockSummary->map(function ($stock) {
@@ -45,17 +43,15 @@ class TransferExternalController extends Controller
             return $grade['total_stock_grams'] > 0;
         });
 
-        // ✅ FIXED: Filter lokasi Jasa Cuci (BUKAN IDM/DMK, BUKAN Gudang Utama)
         $jasaCuciLocations = Location::where('name', 'NOT LIKE', '%IDM%')
             ->where('name', 'NOT LIKE', '%DMK%')
             ->where('name', '!=', 'Gudang Utama')
             ->orderBy('name')
             ->get();
 
-        // ✅ FIXED: Query riwayat transfer eksternal (kirim ke jasa cuci)
         $query = InventoryTransaction::where('transaction_type', 'EXTERNAL_TRANSFER_OUT')
             ->with(['gradeCompany', 'location', 'stockTransfer.toLocation'])
-            ->where('location_id', $gudangUtama->id); // ✅ Yang keluar dari Gudang Utama
+            ->where('location_id', $gudangUtama->id); 
 
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
@@ -75,7 +71,7 @@ class TransferExternalController extends Controller
             'grades',
             'gradesWithStock', 
             'gudangUtama',
-            'jasaCuciLocations', // ✅ Rename untuk clarity
+            'jasaCuciLocations', 
             'transferExternalTransactions'
         ));
     }
@@ -98,11 +94,9 @@ class TransferExternalController extends Controller
             'weight_grams.min' => 'Berat minimal 0.01 gram',
         ]);
 
-        // ✅ FIXED: Set from_location_id ke Gudang Utama (lokasi asal)
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['from_location_id'] = $gudangUtama->id;
 
-        // ✅ Validasi stok mencukupi di Gudang Utama
         $hasEnoughStock = $this->service->hasEnoughStock(
             $validated['grade_company_id'], 
             $validated['from_location_id'], // Gudang Utama

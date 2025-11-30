@@ -25,7 +25,6 @@ class ReceiveInternalController extends Controller
     {
         $grades = GradeCompany::all();
         
-        // ✅ Hanya lokasi IDM/DMK sebagai asal
         $locations = Location::where('name', 'LIKE', '%IDM%')
             ->orWhere('name', 'LIKE', '%DMK%')
             ->get();
@@ -54,7 +53,7 @@ class ReceiveInternalController extends Controller
     }
 
     /**
-     * ✅ NEW: AJAX endpoint untuk cek stok per grade di lokasi internal
+     * AJAX endpoint untuk cek stok per grade di lokasi internal
      */
     public function checkInternalStock(Request $request)
     {
@@ -95,7 +94,6 @@ class ReceiveInternalController extends Controller
             }
         }
 
-        // ✅ Get grade name
         $grade = GradeCompany::find($gradeCompanyId);
 
         return response()->json([
@@ -126,7 +124,6 @@ class ReceiveInternalController extends Controller
             'weight_grams.required' => 'Berat harus diisi',
         ]);
 
-        // ✅ Validasi stok tersedia
         $availableStock = $this->service->getAvailableStock(
             $validated['grade_company_id'], 
             $validated['from_location_id']
@@ -140,7 +137,6 @@ class ReceiveInternalController extends Controller
                 ]);
         }
 
-        // Set to_location_id ke Gudang Utama
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['to_location_id'] = $gudangUtama->id;
 

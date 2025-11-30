@@ -41,7 +41,6 @@ class TransferInternalController extends Controller
             return $grade['total_stock_grams'] > 0;
         });
 
-        // ✅ FILTER: Hanya tampilkan lokasi IDM/DMK
         $locations = Location::where('name', 'LIKE', '%IDM%')
             ->orWhere('name', 'LIKE', '%DMK%')
             ->get();
@@ -51,7 +50,6 @@ class TransferInternalController extends Controller
             'fromLocation', 
             'toLocation',
         ])->whereHas('toLocation', function($q) {
-            // Filter transfer yang tujuannya IDM/DMK
             $q->where('name', 'LIKE', '%IDM%')
               ->orWhere('name', 'LIKE', '%DMK%');
         });

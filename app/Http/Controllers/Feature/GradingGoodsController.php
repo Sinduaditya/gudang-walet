@@ -96,13 +96,11 @@ class GradingGoodsController extends Controller
 
     public function export(Request $request)
     {
-        // Get filters if any
         $filters = [
             'month' => $request->get('month'),
             'year' => $request->get('year'),
         ];
 
-        // Create filename with date range
         $fileName = 'laporan_grading_barang';
 
         if (!empty($filters['month']) || !empty($filters['year'])) {
@@ -117,15 +115,12 @@ class GradingGoodsController extends Controller
 
         $fileName .= '_' . date('Y-m-d') . '.xlsx';
 
-        // Pass filters to export
         $export = new GradingGoodsExport($this->gradingGoodsService, $filters);
         return Excel::download($export, $fileName);
     }
 
-    // ✅ FIX: Edit berdasarkan receipt_item_id untuk edit semua grading
     public function edit($receiptItemId)
     {
-        // ✅ Ambil semua sorting results untuk receipt item ini
         $allGradingResults = $this->gradingGoodsService->getSortingResultsByReceiptItem($receiptItemId);
 
         if ($allGradingResults->isEmpty()) {
@@ -138,15 +133,13 @@ class GradingGoodsController extends Controller
         return view('admin.grading-goods.edit', compact('allGradingResults', 'receiptItem', 'allGradeCompanies'));
     }
 
-    // ✅ FIX: Update semua grading untuk receipt item
     public function update(Request $request, $receiptItemId)
     {
-        // ✅ FIX: Validasi yang lebih fleksibel untuk integer
         $request->validate([
             'grades.*.grading_date' => 'required|date',
             'grades.*.grade_company_name' => 'required|string|max:255',
-            'grades.*.quantity' => 'required|numeric|min:0', // ✅ numeric instead of integer
-            'grades.*.weight_grams' => 'required|numeric|min:0', // ✅ numeric instead of integer
+            'grades.*.quantity' => 'required|numeric|min:0', 
+            'grades.*.weight_grams' => 'required|numeric|min:0', 
             'grades.*.notes' => 'nullable|string',
             'global_notes' => 'nullable|string',
         ]);
@@ -155,14 +148,13 @@ class GradingGoodsController extends Controller
             $grades = $request->input('grades');
             $globalNotes = $request->input('global_notes');
 
-            // ✅ FIX: Convert string ke integer sebelum disimpan
             $processedGrades = [];
             foreach ($grades as $grade) {
                 $processedGrades[] = [
                     'grading_date' => $grade['grading_date'],
                     'grade_company_name' => $grade['grade_company_name'],
-                    'quantity' => (int) $grade['quantity'], // ✅ Cast ke integer
-                    'weight_grams' => (int) $grade['weight_grams'], // ✅ Cast ke integer
+                    'quantity' => (int) $grade['quantity'], 
+                    'weight_grams' => (int) $grade['weight_grams'], 
                     'notes' => $grade['notes'] ?? null,
                 ];
             }
@@ -177,7 +169,6 @@ class GradingGoodsController extends Controller
         }
     }
 
-    // ✅ FIX: Delete berdasarkan receipt_item_id
     public function destroy($receiptItemId)
     {
         try {

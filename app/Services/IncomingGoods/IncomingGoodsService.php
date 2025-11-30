@@ -153,13 +153,11 @@ class IncomingGoodsService
                     $warehouseWeight = $itemData['warehouse_weight_grams'];
                     $difference = $warehouseWeight - $supplierWeight;
 
-                    // ✅ FIX: Calculate percentage correctly
                     $percentageDifference = null;
                     if ($supplierWeight > 0) {
                         $percentageDifference = ($difference / $supplierWeight) * 100;
                     }
 
-                    // ✅ FIX: Flag if percentage is above 5% (not 0.5%)
                     $isFlagged = $percentageDifference !== null && abs($percentageDifference) > 5;
 
                     ReceiptItem::create([
@@ -168,9 +166,9 @@ class IncomingGoodsService
                         'supplier_weight_grams' => $supplierWeight,
                         'warehouse_weight_grams' => $warehouseWeight,
                         'difference_grams' => $difference,
-                        'percentage_difference' => $percentageDifference,  // ✅ Correct calculation
+                        'percentage_difference' => $percentageDifference,  
                         'moisture_percentage' => $itemData['moisture_percentage'] ?? null,
-                        'is_flagged_red' => $isFlagged,  // ✅ 5% threshold
+                        'is_flagged_red' => $isFlagged,  
                         'status' => ReceiptItem::STATUS_MENTAH,
                         'created_by' => auth()->id(),
                         'updated_by' => auth()->id(),

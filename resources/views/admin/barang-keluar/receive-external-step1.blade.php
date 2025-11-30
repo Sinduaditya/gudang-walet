@@ -488,7 +488,6 @@
             let currentStockData = {};
             let availableStockAtLocation = 0;
 
-            // ✅ Function untuk load stok ketika grade dipilih
             function loadStockForGrade(gradeId, fromLocationId = null) {
         if (!gradeId) {
             document.getElementById('stockInfo').classList.add('hidden');

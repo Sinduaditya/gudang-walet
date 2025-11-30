@@ -97,7 +97,7 @@
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
                     </div>
-                    <h3 class="ml-4 text-xl font-bold text-gray-800 group-hover:text-indigo-600 transition-all duration-300">
+                    <h3 class="ml-4 text-xl font-bold text-gray-800 kgroup-hover:text-indigo-600 transition-all duration-300">
                         Terima Internal
                     </h3>
                 </div>
