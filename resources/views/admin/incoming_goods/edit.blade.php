@@ -270,22 +270,54 @@
         const difference = warehouseWeight - supplierWeight;
         const displaySpan = itemRow.querySelector('.difference-display');
         
+        let percentage = 0;
+        let decimal = 0;
+        
+        if (supplierWeight > 0) {
+            decimal = difference / supplierWeight; // ✅ Desimal bisa negatif/positif
+            percentage = Math.abs(decimal) * 100; // ✅ Persentase selalu positif
+        }
+        
         let displayText = '';
         let colorClass = '';
         
         if (difference < 0) {
-            displayText = `${difference} (susut)`;
+            displayText = `${formatNumber(difference)} gr (susut)`;
             colorClass = 'text-red-600';
         } else if (difference > 0) {
-            displayText = `+${difference} (bertambah)`;
+            displayText = `+${formatNumber(difference)} gr (kelebihan)`;
             colorClass = 'text-green-600';
         } else {
-            displayText = '0 (sama)';
+            displayText = '0 gr (sama)';
             colorClass = 'text-gray-600';
         }
+
+        if (percentage !== 0 || decimal !== 0) {
+            // ✅ Format decimal: 3 desimal, koma sebagai desimal
+            const formattedDecimal = decimal.toFixed(3).replace('.', ',');
+            
+            // ✅ Format percentage: bulat atau 1 desimal, koma sebagai desimal
+            const formattedPercentage = (percentage == Math.floor(percentage))
+                ? Math.round(percentage).toString()
+                : percentage.toFixed(1).replace('.', ',');
+            
+            // ✅ FIX: Update threshold ke 5%
+            if (percentage > 5) {  // ✅ 5% threshold
+                displayText += ` | <span class="text-red-600 font-bold">Rasio: ${formattedDecimal} | ${formattedPercentage}% ⚠️</span>`;
+            } else if (percentage > 1) { // 1%
+                displayText += ` | <span class="text-orange-600">Rasio: ${formattedDecimal} | ${formattedPercentage}%</span>`;
+            } else {
+                displayText += ` | <span class="text-green-600">Rasio: ${formattedDecimal} | ${formattedPercentage}%</span>`;
+            }
+        }
         
-        displaySpan.textContent = displayText;
+        displaySpan.innerHTML = displayText;
         displaySpan.className = `difference-display text-sm font-medium ${colorClass}`;
+    }
+
+    // ✅ Helper function untuk format angka Indonesia
+    function formatNumber(number) {
+        return new Intl.NumberFormat('id-ID').format(number);
     }
 </script>
 @endpush

@@ -20,7 +20,7 @@
                                 d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
                         </svg>
                         Export Excel
-                        @if(request('month') || request('year'))
+                        @if (request('month') || request('year'))
                             <span class="ml-1 text-xs text-blue-600">(Filtered)</span>
                         @endif
                     </a>
@@ -83,19 +83,21 @@
                 </form>
 
                 <!-- Active Filter Display -->
-                @if(request('month') || request('year'))
+                @if (request('month') || request('year'))
                     <div class="mt-3 pt-3 border-t border-gray-200">
                         <div class="flex flex-wrap gap-2 items-center">
                             <span class="text-sm text-gray-600">Filter aktif:</span>
-                            
-                            @if(request('month'))
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+
+                            @if (request('month'))
+                                <span
+                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     Bulan: {{ date('F', mktime(0, 0, 0, request('month'), 1)) }}
                                 </span>
                             @endif
-                            
-                            @if(request('year'))
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+
+                            @if (request('year'))
+                                <span
+                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     Tahun: {{ request('year') }}
                                 </span>
                             @endif
@@ -121,13 +123,26 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($receipts as $i => $receipt)
-                                <tr>
+                                @php
+                                    // ✅ FIX: Update threshold ke 5% (bukan 0.5%)
+                                    $hasHighPercentage = $receipt->receiptItems->some(function ($item) {
+                                        return abs($item->percentage_difference ?? 0) > 5; // ✅ 5% threshold
+                                    });
+                                @endphp
+                                <tr class="{{ $hasHighPercentage ? 'bg-red-50 border-l-4 border-red-500' : '' }}">
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $receipts->firstItem() + $i }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ optional($receipt->receipt_date)->format('d/m/Y') }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $receipt->supplier->name ?? '-' }}</td>
+                                        {{ optional($receipt->receipt_date)->format('d/m/Y') }}
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                        {{ optional($receipt->unloading_date)->format('d/m/Y') }}</td>
+                                        {{ $receipt->supplier->name ?? '-' }}
+                                        @if ($hasHighPercentage)
+                                            <span class="text-red-600 text-xs ml-1">⚠️</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        {{ optional($receipt->unloading_date)->format('d/m/Y') }}
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $receipt->receiptItems->count() }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ number_format($receipt->receiptItems->sum('warehouse_weight_grams')) }}
@@ -157,6 +172,16 @@
                                                 Sebagian Disortir
                                             </span>
                                         @endif
+
+                                        {{-- ✅ FIX: Update warning text dan tooltip --}}
+                                        @if ($hasHighPercentage)
+                                            <br>
+                                            <span
+                                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mt-1"
+                                                title="Ada item dengan selisih > 5%">
+                                                Selisih Tinggi (>5%)
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         <div class="flex items-center gap-2">
@@ -172,7 +197,7 @@
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                                        @if(request('month') || request('year'))
+                                        @if (request('month') || request('year'))
                                             Tidak ada data barang masuk untuk filter yang dipilih.
                                         @else
                                             Belum ada data barang masuk.

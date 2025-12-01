@@ -16,9 +16,9 @@ class Step2Request extends FormRequest
         return [
             'grades' => 'required|array|min:1',
             'grades.*.grade_company_name' => 'required|string|max:255',
-            'grades.*.weight_grams' => 'required|numeric|min:0.01',
-            'grades.*.quantity' => 'required|integer|min:1',
-            'grades.*.notes' => 'nullable|string|max:500',
+            'grades.*.quantity' => 'required|numeric|min:0', // ✅ numeric instead of integer
+            'grades.*.weight_grams' => 'required|numeric|min:0', // ✅ numeric instead of integer
+            'grades.*.notes' => 'nullable|string|max:1000',
             'global_notes' => 'nullable|string|max:1000',
         ];
     }
@@ -26,32 +26,31 @@ class Step2Request extends FormRequest
     public function messages()
     {
         return [
-            'grades.required' => 'Harus ada minimal 1 grade hasil.',
-            'grades.min' => 'Harus ada minimal 1 grade hasil.',
-            'grades.*.grade_company_name.required' => 'Nama grade perusahaan wajib diisi.',
-            'grades.*.weight_grams.required' => 'Berat grade wajib diisi.',
-            'grades.*.weight_grams.min' => 'Berat grade minimal 0.01 gram.',
+            'grades.required' => 'Setidaknya harus ada 1 grade hasil.',
+            'grades.*.grade_company_name.required' => 'Nama grade company wajib diisi.',
             'grades.*.quantity.required' => 'Jumlah item wajib diisi.',
-            'grades.*.quantity.min' => 'Jumlah item minimal 1.',
-            'grades.*.notes.max' => 'Catatan grade maksimal 500 karakter.',
-            'global_notes.max' => 'Catatan global maksimal 1000 karakter.',
+            'grades.*.quantity.numeric' => 'Jumlah item harus berupa angka.',
+            'grades.*.quantity.min' => 'Jumlah item tidak boleh negatif.',
+            'grades.*.weight_grams.required' => 'Berat hasil wajib diisi.',
+            'grades.*.weight_grams.numeric' => 'Berat hasil harus berupa angka.',
+            'grades.*.weight_grams.min' => 'Berat hasil tidak boleh negatif.',
         ];
     }
 
-    public function attributes()
+    protected function prepareForValidation()
     {
-        $attributes = [];
-        
         if ($this->has('grades')) {
-            foreach ($this->input('grades') as $index => $grade) {
-                $gradeNumber = $index + 1;
-                $attributes["grades.{$index}.grade_company_name"] = "Grade {$gradeNumber} - Nama Grade";
-                $attributes["grades.{$index}.weight_grams"] = "Grade {$gradeNumber} - Berat";
-                $attributes["grades.{$index}.quantity"] = "Grade {$gradeNumber} - Jumlah";
-                $attributes["grades.{$index}.notes"] = "Grade {$gradeNumber} - Catatan";
+            $grades = $this->input('grades');
+            foreach ($grades as $index => $grade) {
+                // ✅ Pastikan quantity dan weight_grams adalah string yang bisa di-cast ke integer
+                if (isset($grade['quantity'])) {
+                    $grades[$index]['quantity'] = trim($grade['quantity']);
+                }
+                if (isset($grade['weight_grams'])) {
+                    $grades[$index]['weight_grams'] = trim($grade['weight_grams']);
+                }
             }
+            $this->merge(['grades' => $grades]);
         }
-        
-        return $attributes;
     }
 }

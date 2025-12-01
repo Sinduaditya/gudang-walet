@@ -17,6 +17,8 @@ use App\Http\Controllers\Feature\TransferInternalController;
 use App\Http\Controllers\Feature\TransferExternalController;
 use App\Http\Controllers\Master\StokController;
 use App\Http\Controllers\Feature\IncomingGoodsController;
+use App\Http\Controllers\Feature\ReceiveExternalController;
+use App\Http\Controllers\Feature\ReceiveInternalController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -58,28 +60,20 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('{id}', [IncomingGoodsController::class, 'show'])->name('show');
             });
 
-        //Grading Goods Routes
         Route::prefix('grading-goods')
             ->name('grading-goods.')
             ->group(function () {
                 Route::get('/', [GradingGoodsController::class, 'index'])->name('index');
+                Route::get('/step1', [GradingGoodsController::class, 'createStep1'])->name('step1');
+                Route::post('/step1', [GradingGoodsController::class, 'storeStep1'])->name('store.step1');
+                Route::get('/step2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
+                Route::post('/step2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('store.step2');
+                Route::get('/export', [GradingGoodsController::class, 'export'])->name('export');
 
-                Route::get('export', [GradingGoodsController::class, 'export'])->name('export');
-
-                // Step 1
-                Route::get('step-1', [GradingGoodsController::class, 'createStep1'])->name('step1');
-                Route::post('step-1', [GradingGoodsController::class, 'storeStep1'])->name('step1.store');
-
-                // Step 2
-                Route::get('step-2/{id}', [GradingGoodsController::class, 'createStep2'])->name('step2');
-                Route::post('step-2/{id}', [GradingGoodsController::class, 'storeStep2'])->name('step2.store');
-
-                // Edit, Update, Delete
-                Route::get('edit/{id}', [GradingGoodsController::class, 'edit'])->name('edit');
-                Route::put('update/{id}', [GradingGoodsController::class, 'update'])->name('update');
-                Route::delete('delete/{id}', [GradingGoodsController::class, 'destroy'])->name('destroy');
-
-                Route::get('/{id}', [GradingGoodsController::class, 'show'])->name('show');
+                Route::get('/show/{receiptItemId}', [GradingGoodsController::class, 'show'])->name('show');
+                Route::get('/edit/{receiptItemId}', [GradingGoodsController::class, 'edit'])->name('edit');
+                Route::put('/update/{receiptItemId}', [GradingGoodsController::class, 'update'])->name('update');
+                Route::delete('/delete/{receiptItemId}', [GradingGoodsController::class, 'destroy'])->name('destroy');
             });
 
         // Export Data Master to Excel
@@ -124,6 +118,29 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
                         Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
                         Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
+                    });
+                // ========== RECEIVE INTERNAL ==========
+                Route::prefix('receive-internal')
+                    ->name('receive-internal.')
+                    ->group(function () {
+                        Route::get('/step1', [ReceiveInternalController::class, 'receiveInternalStep1'])->name('step1');
+                        Route::post('/step1', [ReceiveInternalController::class, 'storeReceiveInternalStep1'])->name('store-step1');
+                        Route::get('/step2', [ReceiveInternalController::class, 'receiveInternalStep2'])->name('step2');
+                        Route::post('/confirm', [ReceiveInternalController::class, 'receiveInternal'])->name('store');
+
+                        Route::get('/stock-check', [ReceiveInternalController::class, 'checkInternalStock'])->name('stock_check');
+                    });
+
+                // ========== RECEIVE EXTERNAL ==========
+                Route::prefix('receive-external')
+                    ->name('receive-external.')
+                    ->group(function () {
+                        Route::get('/step1', [ReceiveExternalController::class, 'receiveExternalStep1'])->name('step1');
+                        Route::post('/step1', [ReceiveExternalController::class, 'storeReceiveExternalStep1'])->name('store-step1');
+                        Route::get('/step2', [ReceiveExternalController::class, 'receiveExternalStep2'])->name('step2');
+                        Route::post('/confirm', [ReceiveExternalController::class, 'receiveExternal'])->name('store');
+
+                        Route::get('/stock-check', [ReceiveExternalController::class, 'checkExternalStock'])->name('stock_check');
                     });
             });
 

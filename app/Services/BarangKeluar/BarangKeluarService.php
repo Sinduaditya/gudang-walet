@@ -112,25 +112,83 @@ class BarangKeluarService
         return DB::transaction(function () use ($data) {
             $userId = Auth::id();
 
-            // Buat record transfer dengan from_location sebagai lokasi eksternal
             $transfer = StockTransfer::create([
                 'transfer_date'     => $data['transfer_date'] ?? now(),
                 'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'], // Lokasi eksternal (Jasacuci, dll)
-                'to_location_id'    => $data['to_location_id'],   // Lokasi internal (Gudang Utama)
+                'from_location_id'  => $data['from_location_id'], // Gudang Utama
+                'to_location_id'    => $data['to_location_id'],   // Jasa Cuci
                 'weight_grams'      => $data['weight_grams'],
                 'notes'             => $data['notes'] ?? null,
-                'external_source'   => $data['external_source'] ?? null, // Nama supplier/partner
                 'created_by'        => $userId,
             ]);
 
-            // EXTERNAL_TRANSFER_IN (positif) di lokasi tujuan internal
+            // EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'], // Lokasi tujuan internal
+                'location_id'            => $data['from_location_id'], // Gudang Utama
+                'quantity_change_grams'  => -abs($data['weight_grams']),
+                'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            return $transfer;
+        });
+    }
+
+    public function receiveInternal(array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($data) {
+            $userId = Auth::id();
+
+            $transfer = StockTransfer::create([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'], // IDM/DMK
+                'to_location_id'    => $data['to_location_id'],   // Gudang Utama
+                'weight_grams'      => $data['weight_grams'],
+                'notes'             => $data['notes'] ?? null,
+                'created_by'        => $userId,
+            ]);
+
+            // RECEIVE_INTERNAL_IN (positif) di Gudang Utama
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['to_location_id'], // Gudang Utama
                 'quantity_change_grams'  => abs($data['weight_grams']),
-                'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
+                'transaction_type'       => 'RECEIVE_INTERNAL_IN',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            return $transfer;
+        });
+    }
+
+    public function receiveExternal(array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($data) {
+            $userId = Auth::id();
+
+            $transfer = StockTransfer::create([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'], // Jasa Cuci
+                'to_location_id'    => $data['to_location_id'],   // Gudang Utama
+                'weight_grams'      => $data['weight_grams'],
+                'notes'             => $data['notes'] ?? null,
+                'created_by'        => $userId,
+            ]);
+
+            // RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['to_location_id'], // Gudang Utama
+                'quantity_change_grams'  => abs($data['weight_grams']),
+                'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
             ]);

@@ -32,15 +32,17 @@ class GradingGoodsController extends Controller
         return view('admin.grading-goods.index', compact('gradings'));
     }
 
-    public function show($id)
+    public function show($receiptItemId)
     {
-        $grading = $this->gradingGoodsService->getSortingResultWithRelations($id);
+        $allGradingResults = $this->gradingGoodsService->getSortingResultsByReceiptItem($receiptItemId);
 
-        if (!$grading) {
+        if ($allGradingResults->isEmpty()) {
             return abort(404, 'Grading not found');
         }
 
-        return view('admin.grading-goods.show', compact('grading'));
+        $grading = $allGradingResults->first();
+
+        return view('admin.grading-goods.show', compact('grading', 'allGradingResults'));
     }
 
     public function createStep1(Request $request)
@@ -94,13 +96,11 @@ class GradingGoodsController extends Controller
 
     public function export(Request $request)
     {
-        // Get filters if any
         $filters = [
             'month' => $request->get('month'),
             'year' => $request->get('year'),
         ];
 
-        // Create filename with date range
         $fileName = 'laporan_grading_barang';
 
         if (!empty($filters['month']) || !empty($filters['year'])) {
@@ -115,40 +115,64 @@ class GradingGoodsController extends Controller
 
         $fileName .= '_' . date('Y-m-d') . '.xlsx';
 
-        // Pass filters to export
         $export = new GradingGoodsExport($this->gradingGoodsService, $filters);
         return Excel::download($export, $fileName);
     }
 
-    public function edit($id)
+    public function edit($receiptItemId)
     {
-        $sortingResult = $this->gradingGoodsService->getSortingResultWithRelations($id);
-        if (!$sortingResult) {
+        $allGradingResults = $this->gradingGoodsService->getSortingResultsByReceiptItem($receiptItemId);
+
+        if ($allGradingResults->isEmpty()) {
             return redirect()->route('grading-goods.index')->with('error', 'Data grading tidak ditemukan.');
         }
 
-        $allReceiptItems = $this->gradingGoodsService->getReceiptItemsByGradeSupplierName(null);
-
+        $receiptItem = $allGradingResults->first()->receiptItem;
         $allGradeCompanies = $this->gradingGoodsService->getAllGradeCompanies();
 
-        return view('admin.grading-goods.edit', compact('sortingResult', 'allReceiptItems', 'allGradeCompanies'));
+        return view('admin.grading-goods.edit', compact('allGradingResults', 'receiptItem', 'allGradeCompanies'));
     }
 
-    public function update(UpdateGradingRequest $request, $id)
+    public function update(Request $request, $receiptItemId)
     {
+        $request->validate([
+            'grades.*.grading_date' => 'required|date',
+            'grades.*.grade_company_name' => 'required|string|max:255',
+            'grades.*.quantity' => 'required|numeric|min:0', 
+            'grades.*.weight_grams' => 'required|numeric|min:0', 
+            'grades.*.notes' => 'nullable|string',
+            'global_notes' => 'nullable|string',
+        ]);
+
         try {
-            $this->gradingGoodsService->updateFullGrading($id, $request->validated());
+            $grades = $request->input('grades');
+            $globalNotes = $request->input('global_notes');
+
+            $processedGrades = [];
+            foreach ($grades as $grade) {
+                $processedGrades[] = [
+                    'grading_date' => $grade['grading_date'],
+                    'grade_company_name' => $grade['grade_company_name'],
+                    'quantity' => (int) $grade['quantity'], 
+                    'weight_grams' => (int) $grade['weight_grams'], 
+                    'notes' => $grade['notes'] ?? null,
+                ];
+            }
+
+            $this->gradingGoodsService->updateMultipleSortingResults($receiptItemId, $processedGrades, $globalNotes);
 
             return redirect()->route('grading-goods.index')->with('success', 'Data grading berhasil diperbarui.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
-    public function destroy($id)
+    public function destroy($receiptItemId)
     {
         try {
-            $this->gradingGoodsService->deleteGrading($id);
+            $this->gradingGoodsService->deleteGrading($receiptItemId);
             return redirect()->route('grading-goods.index')->with('success', 'Data grading berhasil dihapus.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());

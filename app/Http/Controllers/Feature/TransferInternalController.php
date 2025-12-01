@@ -24,13 +24,11 @@ class TransferInternalController extends Controller
      */
     public function transferStep1(Request $request)
     {
-        // Ambil grades yang memiliki stok di Gudang Utama
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         if (!$gudangUtama) {
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        // Ambil stok per grade di Gudang Utama menggunakan service
         $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
         
         $gradesWithStock = $stockSummary->map(function ($stock) {
@@ -43,28 +41,25 @@ class TransferInternalController extends Controller
             return $grade['total_stock_grams'] > 0;
         });
 
-        $locations = Location::all();
+        $locations = Location::where('name', 'LIKE', '%IDM%')
+            ->orWhere('name', 'LIKE', '%DMK%')
+            ->get();
 
         $query = \App\Models\StockTransfer::with([
             'gradeCompany', 
             'fromLocation', 
             'toLocation',
-            'inventoryTransactions' => function($q) {
-                $q->orderBy('transaction_type');
-            }
-        ]);
+        ])->whereHas('toLocation', function($q) {
+            $q->where('name', 'LIKE', '%IDM%')
+              ->orWhere('name', 'LIKE', '%DMK%');
+        });
 
-        // Filter berdasarkan grade jika ada
         if ($request->filled('grade_id')) {
             $query->where('grade_company_id', $request->grade_id);
         }
 
-        // Filter berdasarkan lokasi jika ada (from atau to)
         if ($request->filled('location_id')) {
-            $query->where(function($q) use ($request) {
-                $q->where('from_location_id', $request->location_id)
-                  ->orWhere('to_location_id', $request->location_id);
-            });
+            $query->where('to_location_id', $request->location_id);
         }
 
         $transferInternalTransactions = $query->latest('transfer_date')

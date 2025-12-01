@@ -125,7 +125,7 @@
     </div>
 
     <!-- Stock Summary & Recent Activities -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    {{-- <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Current Stock Summary -->
         <div class="bg-white rounded-lg shadow-sm">
             <div class="p-6 border-b border-gray-200">
@@ -186,7 +186,7 @@
                 @endforelse
             </div>
         </div>
-    </div>
+    </div> --}}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

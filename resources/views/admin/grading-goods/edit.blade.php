@@ -9,7 +9,11 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-2xl font-semibold text-gray-900">Edit Data Grading</h1>
-                <p class="mt-1 text-sm text-gray-600">ID Grading: {{ $sortingResult->id }}</p>
+                <p class="mt-1 text-sm text-gray-600">
+                    Receipt Item ID: {{ $receiptItem->id }} | 
+                    Supplier: {{ $receiptItem->purchaseReceipt->supplier->name ?? '-' }} | 
+                    Grade: {{ $receiptItem->gradeSupplier->name ?? '-' }}
+                </p>
             </div>
             <div class="flex items-center space-x-3">
                 <a href="{{ route('grading-goods.index') }}"
@@ -19,87 +23,126 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('grading-goods.update', $sortingResult->id) }}" id="editForm" class="space-y-6">
+        <!-- ✅ Info Barang Asal -->
+        <div class="bg-white shadow rounded-lg border mb-6 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Informasi Barang Asal</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Supplier</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ $receiptItem->purchaseReceipt->supplier->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Grade Supplier</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ $receiptItem->gradeSupplier->name ?? '-' }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Tanggal Kedatangan</p>
+                    <p class="text-lg font-semibold text-gray-900">
+                        {{ optional($receiptItem->purchaseReceipt->receipt_date)->format('d/m/Y') ?? '-' }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 font-medium">Berat Barang di Gudang</p>
+                    <p class="text-lg font-bold text-blue-600">
+                        {{ number_format($receiptItem->warehouse_weight_grams ?? 0, 0, ',', '.') }} gr
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('grading-goods.update', $receiptItem->id) }}" id="editForm" class="space-y-6">
             @csrf
             @method('PUT')
 
+            <!-- ✅ Global Notes -->
+            <div class="bg-white shadow-md border rounded-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Catatan Global</h2>
+                <div>
+                    <label for="global_notes" class="block text-sm font-medium text-gray-700">Catatan Keseluruhan</label>
+                    <textarea name="global_notes" id="global_notes" rows="3"
+                              class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              placeholder="Catatan yang berlaku untuk semua grade hasil...">{{ old('global_notes', $allGradingResults->first()->notes ?? '') }}</textarea>
+                </div>
+            </div>
+
+            <!-- ✅ Multiple Grade Forms -->
             <div class="bg-white shadow-md border rounded-lg overflow-hidden">
-                <div class="p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Data Utama</h2>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                        <div>
-                            <label for="grading_date" class="block text-sm font-medium text-gray-700">Tanggal Grading</label>
-                            <input type="date" name="grading_date" id="grading_date"
-                                   value="{{ old('grading_date', $sortingResult->grading_date ? \Carbon\Carbon::parse($sortingResult->grading_date)->format('Y-m-d') : '') }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('grading_date') border-red-500 @enderror"
-                                   required>
-                            @error('grading_date')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="tgl_datang_display" class="block text-sm font-medium text-gray-500">Tanggal Kedatangan</label>
-                            <input type="text" id="tgl_datang_display"
-                                   value="{{ $sortingResult->receiptItem->purchaseReceipt->receipt_date ? \Carbon\Carbon::parse($sortingResult->receiptItem->purchaseReceipt->receipt_date)->format('d/m/Y') : '' }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-gray-50 text-gray-800 px-3 py-2 font-medium"
-                                   readonly>
-                        </div>
-
-                        <div>
-                            <label for="berat_gudang_display" class="block text-sm font-medium text-gray-500">Berat Gudang (g)</label>
-                            <input type="text" id="berat_gudang_display"
-                                   value="{{ $sortingResult->receiptItem->warehouse_weight_grams ?? 0 }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-gray-50 text-gray-800 px-3 py-2 font-medium"
-                                   readonly>
-                        </div>
-
-                        <div>
-                            <label for="quantity" class="block text-sm font-medium text-gray-700">Jumlah Item</label>
-                            <input type="number" name="quantity" id="quantity" min="0"
-                                   value="{{ old('quantity', $sortingResult->quantity) }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('quantity') border-red-500 @enderror"
-                                   required>
-                            @error('quantity')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="grade_company_name" class="block text-sm font-medium text-gray-700">Nama Grade Perusahaan</label>
-                            <input type="text" name="grade_company_name" id="grade_company_name"
-                                   value="{{ old('grade_company_name', optional($sortingResult->gradeCompany)->name) }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('grade_company_name') border-red-500 @enderror"
-                                   required>
-                            @error('grade_company_name')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="weight_grams" class="block text-sm font-medium text-gray-700">Berat setelah Grading (g)</label>
-                            <input type="number" step="1" min="0" name="weight_grams" id="weight_grams"
-                                   value="{{ old('weight_grams', $sortingResult->weight_grams) }}"
-                                   class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('weight_grams') border-red-500 @enderror"
-                                   required>
-                            @error('weight_grams')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-
-                        <div class="md:col-span-2">
-                            <label for="notes" class="block text-sm font-medium text-gray-700">Catatan</label>
-                            <textarea name="notes" id="notes" rows="3"
-                                      class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 @error('notes') border-red-500 @enderror"
-                                      placeholder="Catatan tambahan (opsional)">{{ old('notes', $sortingResult->notes) }}</textarea>
-                            @error('notes')
-                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-900">Edit Grade Hasil ({{ $allGradingResults->count() }} grade)</h2>
+                        <button type="button" onclick="addGradeForm()" 
+                                class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Tambah Grade
+                        </button>
                     </div>
+                </div>
+
+                <div id="grades-container" class="divide-y divide-gray-200">
+                    @foreach ($allGradingResults as $index => $result)
+                        <div class="grade-form p-6" data-index="{{ $index }}">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-md font-medium text-gray-900">Grade #{{ $index + 1 }}</h3>
+                                @if($index > 0)
+                                    <button type="button" onclick="removeGradeForm(this)" 
+                                            class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                        Hapus Grade
+                                    </button>
+                                @endif
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Tanggal Grading</label>
+                                    <input type="date" name="grades[{{ $index }}][grading_date]" 
+                                           value="{{ old('grades.'.$index.'.grading_date', \Carbon\Carbon::parse($result->grading_date)->format('Y-m-d')) }}"
+                                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                           required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Grade Company</label>
+                                    <input type="text" name="grades[{{ $index }}][grade_company_name]" 
+                                           value="{{ old('grades.'.$index.'.grade_company_name', $result->gradeCompany->name ?? '') }}"
+                                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                           placeholder="Nama grade company..."
+                                           list="gradeCompanies"
+                                           required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Jumlah Item</label>
+                                    <input type="number" 
+                                           name="grades[{{ $index }}][quantity]" 
+                                           min="0" 
+                                           step="1"
+                                           value="{{ old('grades.'.$index.'.quantity', $result->quantity ?? 0) }}"
+                                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                           required>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Berat Hasil (gr)</label>
+                                    <input type="number" 
+                                           name="grades[{{ $index }}][weight_grams]" 
+                                           min="0" 
+                                           step="1"
+                                           value="{{ old('grades.'.$index.'.weight_grams', $result->weight_grams ?? 0) }}"
+                                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                           required>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">Catatan Khusus</label>
+                                    <textarea name="grades[{{ $index }}][notes]" rows="2"
+                                              class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                              placeholder="Catatan khusus untuk grade ini...">{{ old('grades.'.$index.'.notes', $result->notes ?? '') }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
 
                 <div class="bg-gray-50 p-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
@@ -113,31 +156,89 @@
                 </div>
             </div>
         </form>
+
+        <!-- ✅ Datalist untuk Grade Companies -->
+        <datalist id="gradeCompanies">
+            @foreach($allGradeCompanies as $gradeCompany)
+                <option value="{{ $gradeCompany->name }}">
+            @endforeach
+        </datalist>
     </div>
 </div>
 
+@push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const itemSelect = document.getElementById('receipt_item_id');
-    const tglDatangDisplay = document.getElementById('tgl_datang_display');
-    const beratGudangDisplay = document.getElementById('berat_gudang_display');
+let gradeIndex = {{ $allGradingResults->count() }};
 
-    if (!itemSelect) return;
+function addGradeForm() {
+    const container = document.getElementById('grades-container');
+    const newGradeHtml = `
+        <div class="grade-form p-6" data-index="${gradeIndex}">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-md font-medium text-gray-900">Grade #${gradeIndex + 1}</h3>
+                <button type="button" onclick="removeGradeForm(this)" 
+                        class="text-red-600 hover:text-red-800 text-sm font-medium">
+                    Hapus Grade
+                </button>
+            </div>
 
-    // Saat item berubah: update tgl datang & berat gudang
-    itemSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const tglDatang = selectedOption?.dataset?.tglDatang || 'N/A';
-        const beratGudang = selectedOption?.dataset?.beratGudang || 0;
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Tanggal Grading</label>
+                    <input type="date" name="grades[${gradeIndex}][grading_date]" 
+                           value="${new Date().toISOString().split('T')[0]}"
+                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           required>
+                </div>
 
-        if (tglDatangDisplay) tglDatangDisplay.value = tglDatang;
-        if (beratGudangDisplay) beratGudangDisplay.value = beratGudang;
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Grade Company</label>
+                    <input type="text" name="grades[${gradeIndex}][grade_company_name]" 
+                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           placeholder="Nama grade company..."
+                           list="gradeCompanies"
+                           required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Jumlah Item</label>
+                    <input type="number" name="grades[${gradeIndex}][quantity]" min="0" step="1"
+                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Berat Hasil (gr)</label>
+                    <input type="number" name="grades[${gradeIndex}][weight_grams]" min="0" step="1"
+                           class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           required>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Catatan Khusus</label>
+                    <textarea name="grades[${gradeIndex}][notes]" rows="2"
+                              class="mt-1 block w-full sm:text-sm border rounded-md bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              placeholder="Catatan khusus untuk grade ini..."></textarea>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', newGradeHtml);
+    gradeIndex++;
+}
+
+function removeGradeForm(button) {
+    const gradeForm = button.closest('.grade-form');
+    gradeForm.remove();
+    
+    // Update grade numbers
+    const gradeForms = document.querySelectorAll('.grade-form');
+    gradeForms.forEach((form, index) => {
+        const header = form.querySelector('h3');
+        header.textContent = `Grade #${index + 1}`;
     });
-
-    // Trigger update awal jika sudah ada option terpilih
-    if (itemSelect.selectedIndex >= 0) {
-        itemSelect.dispatchEvent(new Event('change'));
-    }
-});
+}
 </script>
+@endpush
 @endsection

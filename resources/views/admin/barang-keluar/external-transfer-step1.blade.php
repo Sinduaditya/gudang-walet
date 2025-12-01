@@ -10,7 +10,7 @@
         <div class="mb-6 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Transfer External</h1>
-                <p class="mt-1 text-sm text-gray-600">Terima barang dari supplier/partner eksternal</p>
+                <p class="mt-1 text-sm text-gray-600">Kirim barang dari Gudang Utama ke Jasa Cuci</p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -88,200 +88,179 @@
 
             {{-- Form Tab (Default Active) --}}
             <div id="formTab" class="tab-content">
-                <div class="bg-white rounded-xl shadow-md border border-gray-200">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-lg font-semibold text-gray-900">Informasi Transfer Eksternal</h2>
-                        <p class="text-sm text-gray-500 mt-1">Terima barang dari lokasi eksternal (Jasacuci, supplier, dll)</p>
-                    </div>
+            <div class="bg-white rounded-xl shadow-md border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Pengiriman ke Jasa Cuci</h2>
+                    <p class="text-sm text-gray-500 mt-1">Kirim barang dari Gudang Utama ke lokasi Jasa Cuci eksternal</p>
+                </div>
 
-                    <form action="{{ route('barang.keluar.external-transfer.store-step1') }}" method="POST" class="p-6">
-                        @csrf
+                <form action="{{ route('barang.keluar.external-transfer.store-step1') }}" method="POST" class="p-6">
+                    @csrf
 
-                        <div class="space-y-6">
-                            {{-- Grade --}}
+                    <div class="space-y-6">
+                        {{-- Grade --}}
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                Grade Perusahaan <span class="text-red-500">*</span>
+                            </label>
+                            <select name="grade_company_id" required
+                                    class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                <option value="">-- Pilih Grade --</option>
+                                @foreach ($gradesWithStock as $grade)
+                                    <option value="{{ $grade['id'] }}"
+                                        {{ old('grade_company_id') == $grade['id'] ? 'selected' : '' }}>
+                                        {{ $grade['name'] }} (Stok: {{ number_format($grade['total_stock_grams'], 0, ',', '.') }} gr)
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('grade_company_id')
+                                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Locations --}}
+                        <div class="relative">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {{-- ✅ FIXED: Lokasi Asal (Gudang Utama - Fixed) --}}
+                                <div>
+                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                        </svg>
+                                        Lokasi Asal <span class="text-red-500">*</span>
+                                    </label>
+
+                                    {{-- ✅ Tampilkan Gudang Utama sebagai fixed --}}
+                                    <div class="w-full border border-gray-200 bg-blue-50 rounded-lg p-3 text-blue-800 font-medium">
+                                         {{ $gudangUtama->name ?? 'Gudang Utama' }}
+                                    </div>
+
+                                    <p class="mt-1.5 text-xs text-blue-600">
+                                        <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                  clip-rule="evenodd" />
+                                        </svg>
+                                        Barang akan dikirim dari lokasi ini
+                                    </p>
+                                </div>
+
+                                {{-- ✅ FIXED: Lokasi Tujuan (Jasa Cuci) --}}
+                                <div>
+                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        Tujuan Jasa Cuci <span class="text-red-500">*</span>
+                                    </label>
+                                    <select name="to_location_id" required
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                        <option value="">-- Pilih Jasa Cuci --</option>
+                                        @foreach ($jasaCuciLocations as $loc)
+                                            <option value="{{ $loc->id }}"
+                                                {{ old('to_location_id') == $loc->id ? 'selected' : '' }}>
+                                                {{ $loc->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1.5 text-xs text-gray-500">
+                                        <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                  clip-rule="evenodd" />
+                                        </svg>
+                                        Lokasi Jasa Cuci untuk memproses barang
+                                    </p>
+                                    @error('to_location_id')
+                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Weight & Date --}}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                                     </svg>
-                                    Grade Perusahaan <span class="text-red-500">*</span>
+                                    Berat yang Dikirim (gram) <span class="text-red-500">*</span>
                                 </label>
-                                <select name="grade_company_id" required
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
-                                    <option value="">-- Pilih Grade --</option>
-                                    @foreach ($grades as $grade)
-                                        <option value="{{ $grade->id }}"
-                                            {{ old('grade_company_id') == $grade->id ? 'selected' : '' }}>
-                                            {{ $grade->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('grade_company_id')
+                                <input type="number" name="weight_grams" value="{{ old('weight_grams') }}"
+                                       step="0.01" min="0" placeholder="Masukkan berat dalam gram" required
+                                       class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                @error('weight_grams')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-
-
-                            {{-- Locations --}}
-                            <div class="relative">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Lokasi Asal (Eksternal) <span class="text-red-500">*</span>
-                                        </label>
-                                        <select name="from_location_id" required
-                                                class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
-                                            <option value="">-- Pilih Lokasi Eksternal --</option>
-                                            @foreach ($locations as $loc)
-                                                <option value="{{ $loc->id }}"
-                                                    {{ old('from_location_id') == $loc->id ? 'selected' : '' }}>
-                                                    {{ $loc->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <p class="mt-1.5 text-xs text-gray-500">
-                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd"
-                                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                      clip-rule="evenodd" />
-                                            </svg>
-                                            Lokasi eksternal seperti Jasacuci, Supplier, dll
-                                        </p>
-                                        @error('from_location_id')
-                                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    {{-- MODIFIED BLOCK: Lokasi Tujuan (Internal) --}}
-                                    @php
-                                        $gudangUtama = $locations->firstWhere('name', 'Gudang Utama');
-                                        $gudangUtamaId = $gudangUtama ? $gudangUtama->id : '';
-                                    @endphp
-                                    <div>
-                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                            </svg>
-                                            Lokasi Tujuan (Internal) <span class="text-red-500">*</span>
-                                        </label>
-
-                                        {{-- Tampilkan sebagai teks biasa (terlihat disable) --}}
-                                        <div class="w-full border border-gray-200 bg-gray-100 rounded-lg p-3 text-gray-700">
-                                            Gudang Utama
-                                        </div>
-
-                                        {{-- Input tersembunyi untuk mengirimkan ID --}}
-                                        <input type="hidden" name="to_location_id" value="{{ $gudangUtamaId }}" />
-
-                                        <p class="mt-1.5 text-xs text-gray-500">
-                                            <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd"
-                                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                                      clip-rule="evenodd" />
-                                            </svg>
-                                            Lokasi internal untuk menerima barang (Otomatis ke Gudang Utama)
-                                        </p>
-
-                                        {{-- Tetap tampilkan error jika ID Gudang Utama tidak ditemukan --}}
-                                        @error('to_location_id')
-                                            <p class="mt-1.5 text-sm text-red-600">
-                                                @if(empty($gudangUtamaId))
-                                                    Lokasi "Gudang Utama" tidak ditemukan. Harap hubungi administrator.
-                                                @else
-                                                    {{ $message }}
-                                                @endif
-                                            </p>
-                                        @enderror
-                                    </div>
-                                    {{-- END OF MODIFIED BLOCK --}}
-
-                                </div>
-
-                            </div>
-
-                            {{-- Weight & Date --}}
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                        </svg>
-                                        Berat Diterima (gram) <span class="text-red-500">*</span>
-                                    </label>
-                                    <input type="number" name="weight_grams" value="{{ old('weight_grams') }}"
-                                           step="0.01" min="0" placeholder="Masukkan berat dalam gram" required
-                                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
-                                    @error('weight_grams')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        Tanggal Transfer
-                                        <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
-                                    </label>
-                                    <input type="date" name="transfer_date"
-                                           value="{{ old('transfer_date', date('Y-m-d')) }}"
-                                           class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
-                                    @error('transfer_date')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            {{-- Notes --}}
                             <div>
                                 <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Catatan
+                                    Tanggal Transfer
                                     <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                 </label>
-                                <textarea name="notes" rows="3" placeholder="Tambahkan catatan atau keterangan transfer eksternal..."
-                                          class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent transition resize-none">{{ old('notes') }}</textarea>
-                                @error('notes')
+                                <input type="date" name="transfer_date"
+                                       value="{{ old('transfer_date', date('Y-m-d')) }}"
+                                       class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                @error('transfer_date')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
                         </div>
 
-                        {{-- Form Actions --}}
-                        <div class="flex items-center gap-3 pt-6 border-t border-gray-200 mt-6">
-                            <a href="{{ route('barang.keluar.index') }}"
-                               class="flex-1 inline-flex items-center justify-center px-4 py-3 border-2 border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {{-- Notes --}}
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                          d="M11 5H6a2 2 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
-                                Batal
-                            </a>
-                            <button type="submit"
-                                    class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 focus:ring-4 focus:ring-green-300 transition-all duration-200 shadow-lg hover:shadow-xl">
-                                Lanjut ke Konfirmasi
-                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </button>
+                                Catatan
+                                <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                            </label>
+                            <textarea name="notes" rows="3" placeholder="Tambahkan catatan atau keterangan pengiriman ke jasa cuci..."
+                                      class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none">{{ old('notes') }}</textarea>
+                            @error('notes')
+                                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    {{-- Form Actions --}}
+                    <div class="flex items-center gap-3 pt-6 border-t border-gray-200 mt-6">
+                        <a href="{{ route('barang.keluar.index') }}"
+                           class="flex-1 inline-flex items-center justify-center px-4 py-3 border-2 border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Batal
+                        </a>
+                        <button type="submit"
+                                class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+                            Lanjut ke Konfirmasi
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
             </div>
+        </div>
 
             {{-- History Tab (Hidden by default) --}}
             <div id="historyTab" class="tab-content hidden">
@@ -290,7 +269,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="text-lg font-semibold text-gray-900">Daftar Transfer External</h2>
-                                <p class="text-sm text-gray-500 mt-1">Daftar penerimaan barang dari lokasi eksternal</p>
+                            <p class="text-sm text-gray-500 mt-1">Daftar pengiriman barang ke lokasi Jasa Cuci</p>
                             </div>
                             <button onclick="toggleHistoryTab()"
                                     class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 rounded transition">
@@ -356,19 +335,19 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center">
-                                            <div class="flex flex-col items-center justify-center">
-                                                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                                    </svg>
-                                                </div>
-                                                <p class="text-gray-500 font-medium">Belum ada riwayat transfer eksternal</p>
-                                                <p class="text-gray-400 text-sm mt-1">Transaksi akan muncul setelah Anda menerima barang dari eksternal</p>
+                                    <td colspan="4" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                                </svg>
                                             </div>
-                                        </td>
-                                    </tr>
+                                            <p class="text-gray-500 font-medium">Belum ada pengiriman ke Jasa Cuci</p>
+                                            <p class="text-gray-400 text-sm mt-1">Transaksi akan muncul setelah Anda mengirim barang ke Jasa Cuci</p>
+                                        </div>
+                                    </td>
+                                </tr>
                                 @endforelse
                             </tbody>
                         </table>
