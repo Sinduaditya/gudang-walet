@@ -42,7 +42,7 @@
                 </a>
 
                 {{-- Card 2: Transfer Internal (ke IDM/DMK saja) --}}
-                {{-- <a href="{{ route('barang.keluar.transfer.step1') }}"
+                <a href="{{ route('barang.keluar.transfer.step1') }}"
                     class="group bg-white rounded-xl shadow-md p-8 border-2 border-transparent hover:border-purple-500 hover:shadow-xl transition-all duration-300">
                     <div class="flex items-center mb-4">
                         <div
@@ -67,7 +67,7 @@
                                 d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                     </div>
-                </a> --}}
+                </a>
 
                 {{-- Card 3: Transfer External (ke Jasa Cuci) --}}
                 <a href="{{ route('barang.keluar.external-transfer.step1') }}"
