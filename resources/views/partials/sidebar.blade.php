@@ -18,7 +18,7 @@
             $isBarangMasuk = request()->routeIs('incoming-goods.*');
             $isGrading = request()->routeIs('grading-goods.*');
             $isBarangKeluar = request()->routeIs('barang.keluar.*');
-            $isTrackingStok = request()->routeIs('stok.tracking.index');
+            $isTrackingStock = request()->routeIs('tracking-stock.*');
             $isMasterGradeCompany = request()->routeIs('grade-company.*');
             $isMasterSupplier = request()->routeIs('suppliers.*');
             $isMasterGradeSupplier = request()->routeIs('grade-supplier.*');
@@ -69,18 +69,15 @@
             <span class="font-medium">Barang Keluar</span>
         </a>
 
-        {{-- ▼▼▼ TAMBAHKAN BLOK INI ▼▼▼ --}}
-        {{-- <a href="{{ route('stok.tracking.index') }}"
+        <a href="{{ route('tracking-stock.get.grade.company') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
-            {{ $isTrackingStok ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
+            {{ $isTrackingStock ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
             <span class="font-medium">Tracking Stok</span>
-        </a> --}}
-        {{-- ▲▲▲ BATAS TAMBAHAN ▲▲▲ --}}
-
+        </a>
 
         <div class="pt-4">
             <div class="border-t border-gray-200 mb-4"></div>

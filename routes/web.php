@@ -1,24 +1,24 @@
 <?php
 
+use App\Models\Location;
+use App\Exports\GradeSupplierExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Master\LocationController;
 use App\Http\Controllers\Master\SupplierController;
+use App\Http\Controllers\Feature\PenjualanController;
 use App\Http\Controllers\Master\GradeCompanyController;
+use App\Http\Controllers\Feature\BarangKeluarController;
 use App\Http\Controllers\Feature\GradingGoodsController;
 use App\Http\Controllers\Master\GradeSupplierController;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Models\Location;
-use App\Exports\GradeSupplierExport;
-use App\Http\Controllers\Feature\BarangKeluarController;
-use App\Http\Controllers\Feature\PenjualanController;
-use App\Http\Controllers\Feature\TransferInternalController;
-use App\Http\Controllers\Feature\TransferExternalController;
-use App\Http\Controllers\Master\StokController;
 use App\Http\Controllers\Feature\IncomingGoodsController;
+use App\Http\Controllers\Feature\TrackingStockController;
 use App\Http\Controllers\Feature\ReceiveExternalController;
 use App\Http\Controllers\Feature\ReceiveInternalController;
+use App\Http\Controllers\Feature\TransferExternalController;
+use App\Http\Controllers\Feature\TransferInternalController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -144,8 +144,13 @@ Route::middleware(['auth'])->group(function () {
                     });
             });
 
-        // Di dalam group middleware 'auth' and 'prefix' admin Anda
-        Route::get('/tracking-stok', [StokController::class, 'index'])->name('stok.tracking.index');
+
+        Route::prefix('tracking-stock')
+            ->name('tracking-stock.')
+            ->group(function () {
+                Route::get('/', [TrackingStockController::class, 'index'])->name('get.grade.company');
+                Route::get('/{id}', [TrackingStockController::class, 'detail'])->name('detail');
+            });
 
         // Master Route
         Route::resource('locations', LocationController::class);
