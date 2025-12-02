@@ -226,13 +226,10 @@ function calculateDifference(gradeId, beratAwal) {
         } else {
             const formattedDecimal = decimal.toFixed(3).replace('.', ','); // ✅ Koma sebagai desimal
             
-            // ✅ Warning jika rasio > 0.05 (5%)
-            if (Math.abs(decimal) > 0.05) {
+            // ✅ Warning jika rasio > 0.05 (2%)
+            if (Math.abs(decimal) > 0.02) {
                 decimalClass = 'text-red-600 bg-red-50 px-1 py-0.5 rounded';
                 decimalText = formattedDecimal + ' ⚠️';
-            } else if (Math.abs(decimal) > 0.01) { // 1%
-                decimalClass = 'text-orange-600';
-                decimalText = formattedDecimal;
             } else {
                 decimalClass = 'text-green-600';
                 decimalText = formattedDecimal;
@@ -253,12 +250,9 @@ function calculateDifference(gradeId, beratAwal) {
                 : percentage.toFixed(1).replace('.', ','); // ✅ Koma sebagai desimal
             
             // ✅ Warning jika persentase > 5%
-            if (percentage > 5) {
+            if (percentage > 2) {
                 percentageClass = 'text-red-600 bg-red-50 px-1 py-0.5 rounded';
                 percentageText = formattedPercentage + '% ⚠️';
-            } else if (percentage > 1) { // 1%
-                percentageClass = 'text-orange-600';
-                percentageText = formattedPercentage + '%';
             } else {
                 percentageClass = 'text-green-600';
                 percentageText = formattedPercentage + '%';

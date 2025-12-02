@@ -44,7 +44,7 @@ class GradeSupplierExport implements FromCollection, WithHeadings, WithMapping /
             $grade->id,
             $grade->name,
             $grade->description,
-            $grade->created_at->format('d/m/Y H:i')
+            $grade->created_at ? $grade->created_at->format('d/m/Y H:i') : '-'
         ];
     }
 }

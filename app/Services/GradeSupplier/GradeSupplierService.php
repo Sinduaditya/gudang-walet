@@ -18,7 +18,7 @@ class GradeSupplierService
             });
         }
 
-        return $query->latest()->paginate(10);
+        return $query->latest()->paginate(10)->withQueryString();
     }
 
     public function getById($id)

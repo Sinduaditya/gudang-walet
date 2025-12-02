@@ -1,4 +1,3 @@
-{{-- filepath: d:\Learning\Laravel\gudang_walet\resources\views\admin\incoming_goods\show.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Detail Barang Masuk')
@@ -128,8 +127,9 @@
                                                 $decimalClass = 'text-gray-600';
                                                 $warningIcon = '';
 
-                                                if (abs($decimal) > 0.05) {
-                                                    // 5%
+                                                // ✅ UPDATED: Ganti threshold dari 5% ke 2%
+                                                if (abs($decimal) > 0.02) {
+                                                    // 2%
                                                     $decimalClass =
                                                         'text-red-600 font-bold bg-red-100 px-2 py-1 rounded-md';
                                                     $warningIcon = ' ⚠️';
@@ -144,7 +144,7 @@
                                                 {{ $decimalFormatted }}{{ $warningIcon }}
                                             </span>
                                         </td>
-                                        {{-- ✅ Kolom Persentase (bulat atau 1 desimal, selalu positif) --}}
+                                        {{-- ✅ UPDATED: Kolom Persentase threshold 2% --}}
                                         <td class="px-4 py-3">
                                             @php
                                                 $percentage =
@@ -162,8 +162,9 @@
                                                 $percentageClass = 'text-gray-600';
                                                 $percentWarningIcon = '';
 
-                                                if ($percentage > 5) {
-                                                    // 5%
+                                                // ✅ UPDATED: Ganti threshold dari 5% ke 2%
+                                                if ($percentage > 2) {
+                                                    // 2%
                                                     $percentageClass =
                                                         'text-red-600 font-bold bg-red-100 px-2 py-1 rounded-md';
                                                     $percentWarningIcon = ' ⚠️';
@@ -213,10 +214,10 @@
                         </table>
                     </div>
 
-                    {{-- ✅ Alert jika ada persentase di atas 5% --}}
+                    {{-- ✅ UPDATED: Alert jika ada persentase di atas 2% --}}
                     @php
                         $highPercentageItems = $receipt->receiptItems->filter(function ($item) {
-                            return $item->isPercentageAboveThreshold(); // 5% threshold
+                            return $item->isPercentageAboveThreshold(); // 2% threshold
                         });
 
                         $totalDifference = $receipt->receiptItems->sum('difference_grams');

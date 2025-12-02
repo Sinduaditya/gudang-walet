@@ -44,11 +44,11 @@ class SuppliersExport implements FromCollection, WithHeadings, WithMapping, Shou
     {
         return [
             $row->id,
-            $row->name,
+            $row->name ?? '-',
             $row->address ?? '-',
             $row->contact_person ?? '-',
-            $row->created_at->format('d/m/Y H:i'),
-            $row->updated_at->format('d/m/Y H:i')
+            $row->created_at ? $row->created_at->format('d/m/Y H:i') : '-',
+            $row->updated_at ? $row->updated_at->format('d/m/Y H:i') : '-'
         ];
     }
 

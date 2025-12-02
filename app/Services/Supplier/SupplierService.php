@@ -12,9 +12,15 @@ class SupplierService
     /**
      * Get all suppliers.
      */
-    public function getAll()
+    public function getAll(?string $search = null)
     {
-        return Supplier::latest()->paginate(10); 
+        $query = Supplier::query();
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        return $query->latest()->paginate(10)->withQueryString();
     }
 
     /**

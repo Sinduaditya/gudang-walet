@@ -2,8 +2,10 @@
 
 namespace App\Services\GradeCompany;
 
+use App\Exports\GradeCompanyExport;
 use App\Models\GradeCompany;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GradeCompanyService
 {
@@ -13,8 +15,7 @@ class GradeCompanyService
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
@@ -48,5 +49,9 @@ class GradeCompanyService
 
         $gradeCompany->delete();
         return true;
+    }
+
+    public function exportToExcel(){
+        return Excel::download(new GradeCompanyExport, 'grade-company-' . date('Y-m-d') . '.xlsx');
     }
 }

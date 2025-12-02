@@ -11,9 +11,15 @@ class LocationService
     /**
      * Get all locations.
      */
-    public function getAll()
+    public function getAll(?string $search = null)
     {
-        return Location::latest()->paginate(10); 
+        $query = Location::query();
+
+        if ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        return $query->latest()->paginate(10)->withQueryString(); 
     }
 
     /**
