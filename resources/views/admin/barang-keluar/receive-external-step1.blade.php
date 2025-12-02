@@ -113,7 +113,7 @@
                                 Utama</p>
                         </div>
 
-                        <form action="{{ route('barang.keluar.receive-external.store-step1') }}" method="POST"
+                        <form id="receiveExternalForm" action="{{ route('barang.keluar.receive-external.store') }}" method="POST"
                             class="p-6">
                             @csrf
 
@@ -271,6 +271,7 @@
 
                                 {{-- Weight & Date --}}
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {{-- Berat Diterima --}}
                                     <div>
                                         <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
@@ -295,23 +296,44 @@
                                         @enderror
                                     </div>
 
+                                    {{-- Susut --}}
                                     <div>
                                         <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                             <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                                             </svg>
-                                            Tanggal Penerimaan
+                                            Susut (gram)
                                             <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                         </label>
-                                        <input type="date" name="transfer_date"
-                                            value="{{ old('transfer_date', date('Y-m-d')) }}"
+                                        <input type="number" name="susut_grams" id="susutInput"
+                                            value="{{ old('susut_grams') }}" step="0.01" min="0"
+                                            placeholder="Masukkan berat susut (jika ada)"
                                             class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition">
-                                        @error('transfer_date')
+                                        @error('susut_grams')
                                             <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
                                     </div>
+                                </div>
+
+                                {{-- Tanggal Transfer (Lebar Penuh) --}}
+                                <div>
+                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Tanggal Penerimaan
+                                        <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                    </label>
+                                    <input type="date" name="transfer_date"
+                                        value="{{ old('transfer_date', date('Y-m-d')) }}"
+                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-teal-500 focus:border-transparent transition">
+                                    @error('transfer_date')
+                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 {{-- Notes --}}
@@ -343,7 +365,7 @@
                                     </svg>
                                     Batal
                                 </a>
-                                <button type="submit"
+                                <button type="button" onclick="showConfirmationModal()"
                                     class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white font-semibold rounded-lg hover:from-teal-700 hover:to-teal-800 focus:ring-4 focus:ring-teal-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                                     Lanjut ke Konfirmasi
                                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,7 +417,19 @@
                                         </th>
                                         <th scope="col"
                                             class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                            Stok Bertambah
+                                            Berat Diterima
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Susut
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Referensi
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Aksi
                                         </th>
                                     </tr>
                                 </thead>
@@ -430,16 +464,50 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                                 <div class="text-sm font-semibold text-teal-600">
-                                                    +{{ number_format(abs($tx->quantity_change_grams), 0, ',', '.') }} gr
+                                                    {{ number_format(abs($tx->quantity_change_grams), 2) }} gr
                                                 </div>
                                                 <div class="text-xs text-gray-500">
                                                     ({{ number_format(abs($tx->quantity_change_grams) / 1000, 2) }} kg)
                                                 </div>
                                             </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                                @if(($stockTransfer->susut_grams ?? 0) > 0)
+                                                    <div class="text-sm font-semibold text-red-600">
+                                                        {{ number_format($stockTransfer->susut_grams, 2) }} gr
+                                                    </div>
+                                                @else
+                                                    <span class="text-gray-400">-</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                                <span
+                                                    class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-gray-100 text-gray-700">
+                                                    #{{ $tx->id }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                                <div class="flex justify-center items-center space-x-2">
+                                                    <a href="{{ route('barang.keluar.receive-external.edit', $stockTransfer->id) }}" class="text-blue-600 hover:text-blue-900" title="Edit">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </a>
+                                                    <form action="{{ route('barang.keluar.receive-external.destroy', $stockTransfer->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini? Stok akan dikembalikan.');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Hapus">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="4" class="px-6 py-12 text-center">
+                                        <tr>
+                                            <td colspan="7" class="px-6 py-12 text-center">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <div
                                                         class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -483,6 +551,76 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeConfirmationModal()"></div>
+
+            <!-- Modal panel -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-teal-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <svg class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Konfirmasi Penerimaan Eksternal
+                            </h3>
+                            <div class="mt-4">
+                                <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Grade:</span>
+                                        <span class="font-medium text-gray-900" id="modal-grade"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Jasa Cuci Asal:</span>
+                                        <span class="font-medium text-gray-900" id="modal-from"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Lokasi Tujuan:</span>
+                                        <span class="font-medium text-gray-900" id="modal-to"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Berat Diterima:</span>
+                                        <span class="font-medium text-gray-900" id="modal-weight"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Susut:</span>
+                                        <span class="font-medium text-red-600" id="modal-susut"></span>
+                                    </div>
+                                    <div class="pt-2 border-t border-gray-200 flex justify-between font-semibold">
+                                        <span class="text-gray-700">Total Pengurangan Stok (Pending):</span>
+                                        <span class="text-teal-700" id="modal-total"></span>
+                                    </div>
+                                    <div class="pt-2 border-t border-gray-200">
+                                        <span class="block text-gray-500 mb-1">Catatan:</span>
+                                        <p class="text-gray-700 italic" id="modal-notes">-</p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-sm text-gray-500">
+                                    Pastikan data sudah benar. Stok pending akan berkurang secara otomatis setelah konfirmasi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="submitTransferForm()" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-teal-600 text-base font-medium text-white hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Konfirmasi Penerimaan
+                    </button>
+                    <button type="button" onclick="closeConfirmationModal()" class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             let currentStockData = {};
@@ -512,7 +650,7 @@
             .then(response => response.json())
             .then(data => {
                 stockLoading.classList.add('hidden');
-                
+
                 if (data.success) {
                     currentStockData = data;
                     displayStockInfo(data);
@@ -563,18 +701,8 @@
                 </div>
         `;
 
-                if (data.locations.length > 1) {
-                    html += `<div class="text-xs font-medium text-gray-600 mb-2">Rincian per lokasi:</div>`;
-
-                    data.locations.forEach(location => {
-                        html += `
-                    <div class="flex items-center justify-between p-2 bg-white border border-gray-200 rounded text-sm">
-                        <span class="text-gray-700">${location.location_name}</span>
-                        <span class="font-medium text-gray-900">${location.formatted_stock} (${location.stock_kg} kg)</span>
-                    </div>
-                `;
-                    });
-                }
+                // Location list removed as per user request for optimization
+                // if (data.locations.length > 1) { ... }
 
                 html += `</div>`;
                 stockContent.innerHTML = html;
@@ -613,36 +741,47 @@
             // ✅ Validasi berat input
             function validateWeight() {
                 const weightInput = document.getElementById('weightInput');
+                const susutInput = document.getElementById('susutInput');
                 const stockValidation = document.getElementById('stockValidation');
 
                 const inputWeight = parseFloat(weightInput.value) || 0;
+                const inputSusut = parseFloat(susutInput.value) || 0;
+                const totalDeduction = inputWeight + inputSusut;
 
-                if (!availableStockAtLocation || inputWeight <= 0) {
+                if (!availableStockAtLocation || totalDeduction <= 0) {
                     stockValidation.classList.add('hidden');
                     return;
                 }
 
                 stockValidation.classList.remove('hidden');
 
-                if (inputWeight > availableStockAtLocation) {
+                if (totalDeduction > availableStockAtLocation) {
                     // ❌ Tidak cukup stok
                     stockValidation.innerHTML = `
                 <div class="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
                     <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                     </svg>
-                    <span>Stok tidak cukup! Tersedia: <strong>${availableStockAtLocation.toLocaleString()} gram</strong></span>
+                    <div>
+                        <span class="font-bold">Stok tidak cukup!</span><br>
+                        <span>Total (Diterima + Susut): <strong>${totalDeduction.toLocaleString()} gr</strong></span><br>
+                        <span>Tersedia: <strong>${availableStockAtLocation.toLocaleString()} gr</strong></span>
+                    </div>
                 </div>
             `;
                 } else {
                     // ✅ Stok mencukupi
-                    const remaining = availableStockAtLocation - inputWeight;
+                    const remaining = availableStockAtLocation - totalDeduction;
                     stockValidation.innerHTML = `
                 <div class="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
                     <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                    <span>Stok cukup! Sisa setelah pengambilan: <strong>${remaining.toLocaleString()} gram</strong></span>
+                    <div>
+                        <span class="font-bold">Stok cukup!</span><br>
+                        <span>Total Pengurangan: <strong>${totalDeduction.toLocaleString()} gr</strong></span><br>
+                        <span>Sisa Pending: <strong>${remaining.toLocaleString()} gr</strong></span>
+                    </div>
                 </div>
             `;
                 }
@@ -659,15 +798,23 @@
                     loadStockForGrade(this.value);
                 });
 
-                // Location selection change  
+                // Location selection change
                 fromLocationSelect.addEventListener('change', function() {
-                    updateSpecificLocationStock();
+                    loadStockForGrade(gradeSelect.value, this.value);
                 });
 
                 // Weight input change
                 weightInput.addEventListener('input', function() {
                     validateWeight();
                 });
+
+                // Susut input change
+                const susutInput = document.getElementById('susutInput');
+                if (susutInput) {
+                    susutInput.addEventListener('input', function() {
+                        validateWeight();
+                    });
+                }
 
                 // Load initial stock if grade is already selected
                 if (gradeSelect.value) {
@@ -708,6 +855,47 @@
                     toggleHistoryTab();
                 }
             });
-        </script>
+
+            function showConfirmationModal() {
+                const form = document.getElementById('receiveExternalForm');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                // Get values
+                const gradeSelect = document.getElementById('gradeSelect');
+                const gradeName = gradeSelect.selectedIndex >= 0 ? gradeSelect.options[gradeSelect.selectedIndex].text : '-';
+
+                const fromSelect = document.getElementById('fromLocationSelect');
+                const fromLocation = fromSelect.selectedIndex >= 0 ? fromSelect.options[fromSelect.selectedIndex].text : '-';
+
+                const toLocation = "Gudang Utama"; // Fixed
+
+                const weight = parseFloat(document.getElementById('weightInput').value || 0);
+                const susut = parseFloat(document.getElementById('susutInput').value || 0);
+                const notes = document.querySelector('textarea[name="notes"]').value;
+
+                // Populate modal
+                document.getElementById('modal-grade').textContent = gradeName;
+                document.getElementById('modal-from').textContent = fromLocation;
+                document.getElementById('modal-to').textContent = toLocation;
+                document.getElementById('modal-weight').textContent = new Intl.NumberFormat('id-ID').format(weight) + ' gr';
+                document.getElementById('modal-susut').textContent = new Intl.NumberFormat('id-ID').format(susut) + ' gr';
+                document.getElementById('modal-total').textContent = new Intl.NumberFormat('id-ID').format(weight + susut) + ' gr';
+                document.getElementById('modal-notes').textContent = notes || '-';
+
+                // Show modal
+                document.getElementById('confirmationModal').classList.remove('hidden');
+            }
+
+            function closeConfirmationModal() {
+                document.getElementById('confirmationModal').classList.add('hidden');
+            }
+
+            function submitTransferForm() {
+                document.getElementById('receiveExternalForm').submit();
+            }
+            </script>
     @endpush
 @endsection

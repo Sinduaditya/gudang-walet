@@ -55,6 +55,7 @@ class BarangKeluarService
                 'from_location_id'  => $data['from_location_id'],
                 'to_location_id'    => $data['to_location_id'],
                 'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
                 'created_by'        => $userId,
             ]);
@@ -76,18 +77,21 @@ class BarangKeluarService
      */
     protected function createTransferTransactions(StockTransfer $transfer, array $data, int $userId): void
     {
-        // TRANSFER_OUT dari lokasi asal (quantity negatif)
+        // Hitung total pengurangan (berat transfer + susut)
+        $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
+
+        // TRANSFER_OUT dari lokasi asal (quantity negatif = berat + susut)
         InventoryTransaction::create([
             'transaction_date'       => $data['transfer_date'] ?? now(),
             'grade_company_id'       => $data['grade_company_id'],
             'location_id'            => $data['from_location_id'],
-            'quantity_change_grams'  => -abs($data['weight_grams']),
+            'quantity_change_grams'  => -$totalDeduction,
             'transaction_type'       => 'TRANSFER_OUT',
             'reference_id'           => $transfer->id,
             'created_by'             => $userId,
         ]);
 
-        // TRANSFER_IN ke lokasi tujuan (quantity positif)
+        // TRANSFER_IN ke lokasi tujuan (quantity positif = berat bersih)
         InventoryTransaction::create([
             'transaction_date'       => $data['transfer_date'] ?? now(),
             'grade_company_id'       => $data['grade_company_id'],
@@ -118,16 +122,20 @@ class BarangKeluarService
                 'from_location_id'  => $data['from_location_id'], // Gudang Utama
                 'to_location_id'    => $data['to_location_id'],   // Jasa Cuci
                 'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
                 'created_by'        => $userId,
             ]);
+
+            // Hitung total pengurangan (berat transfer + susut)
+            $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
             // EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
                 'location_id'            => $data['from_location_id'], // Gudang Utama
-                'quantity_change_grams'  => -abs($data['weight_grams']),
+                'quantity_change_grams'  => -$totalDeduction,
                 'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
@@ -178,6 +186,7 @@ class BarangKeluarService
                 'from_location_id'  => $data['from_location_id'], // Jasa Cuci
                 'to_location_id'    => $data['to_location_id'],   // Gudang Utama
                 'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
                 'created_by'        => $userId,
             ]);
@@ -274,5 +283,137 @@ class BarangKeluarService
             ->having('total_stock_grams', '>', 0)
             ->with('gradeCompany')
             ->get();
+    }
+
+    /**
+     * Update transfer internal:
+     * - Hapus transaksi lama (revert stok)
+     * - Buat transaksi baru
+     */
+    public function updateTransfer(int $id, array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $transfer = StockTransfer::findOrFail($id);
+            $userId = Auth::id();
+
+            // 1. Hapus transaksi inventory lama (revert stok)
+            $transfer->transactions()->delete();
+
+            // 2. Update data transfer
+            $transfer->update([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'],
+                'to_location_id'    => $data['to_location_id'],
+                'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
+                'notes'             => $data['notes'] ?? null,
+                'updated_by'        => $userId, // Pastikan ada kolom updated_by atau abaikan jika tidak ada
+            ]);
+
+            // 3. Buat transaksi inventory baru sesuai tipe
+            // Kita perlu tahu tipe transfernya. Karena method ini generic, kita bisa cek dari controller
+            // Tapi untuk simplifikasi, kita asumsikan ini dipanggil oleh controller yang tahu konteksnya.
+            // Namun, struktur StockTransfer tidak menyimpan "tipe" secara eksplisit selain lewat relasi inventory.
+            // Jadi lebih aman jika logic create transaction dipisah atau dipass sebagai callback/parameter.
+            
+            // Refactor: Kita buat method update spesifik atau gunakan parameter type.
+            // Untuk sekarang, mari kita buat updateTransferInternal, updateExternalTransfer, updateReceiveExternal
+            
+            return $transfer;
+        });
+    }
+
+    public function updateTransferInternal(int $id, array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $transfer = StockTransfer::findOrFail($id);
+            $userId = Auth::id();
+
+            // 1. Hapus transaksi inventory lama
+            $transfer->transactions()->delete();
+
+            // 2. Update data transfer
+            $transfer->update([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'],
+                'to_location_id'    => $data['to_location_id'],
+                'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
+                'notes'             => $data['notes'] ?? null,
+            ]);
+
+            // 3. Buat transaksi baru (OUT & IN)
+            $this->createTransferTransactions($transfer, $data, $userId);
+
+            return $transfer;
+        });
+    }
+
+    public function updateExternalTransfer(int $id, array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $transfer = StockTransfer::findOrFail($id);
+            $userId = Auth::id();
+
+            $transfer->transactions()->delete();
+
+            $transfer->update([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'],
+                'to_location_id'    => $data['to_location_id'],
+                'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
+                'notes'             => $data['notes'] ?? null,
+            ]);
+
+            $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
+
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['from_location_id'],
+                'quantity_change_grams'  => -$totalDeduction,
+                'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            return $transfer;
+        });
+    }
+
+    public function updateReceiveExternal(int $id, array $data): StockTransfer
+    {
+        return DB::transaction(function () use ($id, $data) {
+            $transfer = StockTransfer::findOrFail($id);
+            $userId = Auth::id();
+
+            $transfer->transactions()->delete();
+
+            $transfer->update([
+                'transfer_date'     => $data['transfer_date'] ?? now(),
+                'grade_company_id'  => $data['grade_company_id'],
+                'from_location_id'  => $data['from_location_id'],
+                'to_location_id'    => $data['to_location_id'],
+                'weight_grams'      => $data['weight_grams'],
+                'susut_grams'       => $data['susut_grams'] ?? 0,
+                'notes'             => $data['notes'] ?? null,
+            ]);
+
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['to_location_id'],
+                'quantity_change_grams'  => abs($data['weight_grams']),
+                'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            return $transfer;
+        });
     }
 }

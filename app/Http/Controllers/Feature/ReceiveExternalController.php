@@ -58,33 +58,56 @@ class ReceiveExternalController extends Controller
     public function checkExternalStock(Request $request)
     {
         $gradeCompanyId = $request->get('grade_company_id');
-        $fromLocationId = $request->get('from_location_id');
 
-        if (!$gradeCompanyId || !$fromLocationId) {
+        if (!$gradeCompanyId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Grade dan lokasi asal harus dipilih'
+                'message' => 'Grade harus dipilih'
             ]);
         }
 
-        $sentStock = $this->getSentStockToLocation($gradeCompanyId, $fromLocationId);
-        $receivedStock = $this->getReceivedStockFromLocation($gradeCompanyId, $fromLocationId);
-        $pendingStock = $sentStock - $receivedStock;
+        // Get all relevant external locations (Jasa Cuci)
+        $query = Location::where('name', 'NOT LIKE', '%IDM%')
+            ->where('name', 'NOT LIKE', '%DMK%')
+            ->where('name', 'NOT LIKE', '%Gudang Utama%');
+
+        if ($request->filled('from_location_id')) {
+            $query->where('id', $request->from_location_id);
+        }
+
+        $locations = $query->get();
+
+        $locationData = [];
+        $totalPending = 0;
+
+        foreach ($locations as $location) {
+            $sent = $this->getSentStockToLocation($gradeCompanyId, $location->id);
+            $received = $this->getReceivedStockFromLocation($gradeCompanyId, $location->id);
+            $pending = abs($sent) - $received; // Ensure sent is positive
+
+            // Only include if there is pending stock or if it's the requested location (if we were filtering, but we return all)
+            if ($pending > 0.01) { // Use small threshold for float comparison
+                $locationData[] = [
+                    'location_id' => $location->id,
+                    'location_name' => $location->name,
+                    'stock_grams' => $pending,
+                    'stock_kg' => number_format($pending / 1000, 2, ',', '.'),
+                    'formatted_stock' => number_format($pending, 0, ',', '.') . ' gr',
+                ];
+                $totalPending += $pending;
+            }
+        }
 
         $grade = GradeCompany::find($gradeCompanyId);
-        $location = Location::find($fromLocationId);
 
         return response()->json([
             'success' => true,
             'grade_name' => $grade ? $grade->name : 'Unknown',
-            'location_name' => $location ? $location->name : 'Unknown',
-            'sent_stock_grams' => $sentStock,
-            'received_stock_grams' => $receivedStock,
-            'pending_stock_grams' => $pendingStock,
-            'formatted_sent_stock' => number_format($sentStock, 0, ',', '.') . ' gr',
-            'formatted_received_stock' => number_format($receivedStock, 0, ',', '.') . ' gr',
-            'formatted_pending_stock' => number_format($pendingStock, 0, ',', '.') . ' gr',
-            'has_pending_stock' => $pendingStock > 0,
+            'total_stock_grams' => $totalPending,
+            'total_stock_kg' => number_format($totalPending / 1000, 2, ',', '.'),
+            'formatted_total_stock' => number_format($totalPending, 0, ',', '.') . ' gr',
+            'has_stock' => $totalPending > 0,
+            'locations' => $locationData,
         ]);
     }
 
@@ -102,16 +125,27 @@ class ReceiveExternalController extends Controller
     }
 
     /**
-     * Get total stok yang sudah diterima dari lokasi external
+     * Get total stok yang sudah diterima dari lokasi external (Berat + Susut)
      */
     private function getReceivedStockFromLocation(int $gradeCompanyId, int $locationId): float
     {
-        return InventoryTransaction::where('grade_company_id', $gradeCompanyId)
-            ->where('transaction_type', 'RECEIVE_EXTERNAL_IN')
-            ->whereHas('stockTransfer', function($q) use ($locationId) {
-                $q->where('from_location_id', $locationId);
+        // Kita harus menghitung total pengurangan stok pending, yaitu:
+        // Berat yang diterima (masuk ke gudang) + Susut (hilang)
+        // Data ini ada di tabel stock_transfers karena InventoryTransaction RECEIVE_EXTERNAL_IN hanya mencatat berat bersih yang masuk.
+        
+        $transfers = \App\Models\StockTransfer::where('grade_company_id', $gradeCompanyId)
+            ->where('from_location_id', $locationId)
+            ->whereHas('transactions', function($q) {
+                $q->where('transaction_type', 'RECEIVE_EXTERNAL_IN');
             })
-            ->sum('quantity_change_grams'); // Positif
+            ->get();
+
+        $totalReceived = 0;
+        foreach ($transfers as $transfer) {
+            $totalReceived += $transfer->weight_grams + ($transfer->susut_grams ?? 0);
+        }
+
+        return $totalReceived;
     }
 
     /**
@@ -123,6 +157,7 @@ class ReceiveExternalController extends Controller
             'grade_company_id' => 'required|exists:grades_company,id',
             'from_location_id' => 'required|exists:locations,id',
             'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
             'transfer_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
         ], [
@@ -136,11 +171,14 @@ class ReceiveExternalController extends Controller
         $receivedStock = $this->getReceivedStockFromLocation($validated['grade_company_id'], $validated['from_location_id']);
         $pendingStock = $sentStock - $receivedStock;
 
-        if ($validated['weight_grams'] > $pendingStock) {
+        // Calculate total weight to be deducted from pending stock (received weight + shrinkage)
+        $totalDeduction = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+
+        if ($totalDeduction > $pendingStock) {
             return back()
                 ->withInput()
                 ->withErrors([
-                    'weight_grams' => "Berat melebihi stok yang pending. Maksimal: " . number_format($pendingStock, 2) . " gram"
+                    'weight_grams' => "Total berat (Diterima + Susut) melebihi stok yang pending. Maksimal: " . number_format($pendingStock, 2) . " gram"
                 ]);
         }
 
@@ -195,5 +233,73 @@ class ReceiveExternalController extends Controller
         return redirect()
             ->route('barang.keluar.receive-external.step1')
             ->with('success', 'Penerimaan barang eksternal berhasil dicatat dan stok diperbarui.');
+    }
+
+    public function edit($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+        $grades = \App\Models\GradeCompany::all();
+        $locations = \App\Models\Location::where('name', 'NOT LIKE', '%IDM%')
+            ->where('name', 'NOT LIKE', '%DMK%')
+            ->where('name', 'NOT LIKE', '%Gudang Utama%')
+            ->get();
+
+        // Calculate pending stock for validation display
+        $sentStock = abs($this->getSentStockToLocation($transfer->grade_company_id, $transfer->from_location_id));
+        $receivedStock = $this->getReceivedStockFromLocation($transfer->grade_company_id, $transfer->from_location_id);
+        // We subtract the current transaction's weight/shrinkage from receivedStock to simulate "before this transaction" state
+        $currentDeduction = $transfer->weight_grams + ($transfer->susut_grams ?? 0);
+        $receivedStock -= $currentDeduction;
+        
+        $pendingStock = $sentStock - $receivedStock;
+
+        return view('admin.barang-keluar.receive-external-edit', compact('transfer', 'grades', 'locations', 'pendingStock'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'grade_company_id' => 'required|exists:grades_company,id',
+            'from_location_id' => 'required|exists:locations,id',
+            'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
+            'transfer_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $sentStock = abs($this->getSentStockToLocation($validated['grade_company_id'], $validated['from_location_id']));
+        $receivedStock = $this->getReceivedStockFromLocation($validated['grade_company_id'], $validated['from_location_id']);
+        
+        // If editing the same transaction, we need to exclude its contribution to receivedStock
+        $oldTransfer = \App\Models\StockTransfer::findOrFail($id);
+        if ($oldTransfer->grade_company_id == $validated['grade_company_id'] && 
+            $oldTransfer->from_location_id == $validated['from_location_id']) {
+            $receivedStock -= ($oldTransfer->weight_grams + ($oldTransfer->susut_grams ?? 0));
+        }
+
+        $pendingStock = $sentStock - $receivedStock;
+        $totalDeduction = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+
+        if ($totalDeduction > $pendingStock) {
+            return back()->with('error', "Total berat (Diterima + Susut) melebihi stok yang pending. Maksimal: " . number_format($pendingStock, 2) . " gram");
+        }
+
+        $gudangUtama = \App\Models\Location::where('name', 'Gudang Utama')->first();
+        $validated['to_location_id'] = $gudangUtama->id;
+
+        $this->service->updateReceiveExternal($id, $validated);
+
+        return redirect()->route('barang.keluar.receive-external.step1')
+            ->with('success', 'Penerimaan barang eksternal berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+        $transfer->transactions()->delete();
+        $transfer->delete();
+
+        return redirect()->route('barang.keluar.receive-external.step1')
+            ->with('success', 'Penerimaan eksternal berhasil dihapus.');
     }
 }

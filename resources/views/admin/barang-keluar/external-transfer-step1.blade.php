@@ -185,8 +185,9 @@
                             </div>
                         </div>
 
-                        {{-- Weight & Date --}}
+                       {{-- Weight & Susut (Grid 2 Kolom) --}}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {{-- Berat yang Dikirim --}}
                             <div>
                                 <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,30 +196,70 @@
                                     </svg>
                                     Berat yang Dikirim (gram) <span class="text-red-500">*</span>
                                 </label>
-                                <input type="number" name="weight_grams" value="{{ old('weight_grams') }}"
-                                       step="0.01" min="0" placeholder="Masukkan berat dalam gram" required
-                                       class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                <div class="flex gap-2">
+                                    <input type="number" name="weight_grams" id="weight_grams" value="{{ old('weight_grams') }}"
+                                           step="0.01" min="0" placeholder="Masukkan berat dalam gram" required
+                                           class="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                                           oninput="calculateTotalDeduction()">
+                                    <button type="button" onclick="checkStock()" id="btnCheckStock"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                        Cek Stok
+                                    </button>
+                                </div>
+                                <p id="stock-check-result" class="mt-2 text-sm hidden"></p>
                                 @error('weight_grams')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
+                            {{-- Susut --}}
                             <div>
                                 <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            d="M20 12H4" />
                                     </svg>
-                                    Tanggal Transfer
+                                    Susut (gram)
                                     <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                 </label>
-                                <input type="date" name="transfer_date"
-                                       value="{{ old('transfer_date', date('Y-m-d')) }}"
-                                       class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-                                @error('transfer_date')
+                                <input type="number" name="susut_grams" id="susut_grams"
+                                    value="{{ old('susut_grams', 0) }}" step="0.01" min="0"
+                                    placeholder="Masukkan berat susut (opsional)"
+                                    oninput="calculateTotalDeduction()"
+                                    class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                                <p class="mt-1.5 text-xs text-gray-500">
+                                    <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    Susut akan ditambahkan ke pengurangan stok
+                                </p>
+                                <p id="total-deduction-info" class="mt-2 text-sm text-gray-600 font-medium hidden"></p>
+                                @error('susut_grams')
                                     <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
+                        </div>
+
+                        {{-- Tanggal Transfer (Lebar Penuh) --}}
+                        <div>
+                            <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Tanggal Transfer
+                                <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                            </label>
+                            <input type="date" name="transfer_date"
+                                value="{{ old('transfer_date', date('Y-m-d')) }}"
+                                class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                            @error('transfer_date')
+                                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         {{-- Notes --}}
@@ -266,13 +307,45 @@
             <div id="historyTab" class="tab-content hidden">
                 <div class="bg-white rounded-xl shadow-md border border-gray-200">
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h2 class="text-lg font-semibold text-gray-900">Daftar Transfer External</h2>
-                            <p class="text-sm text-gray-500 mt-1">Daftar pengiriman barang ke lokasi Jasa Cuci</p>
+                                <p class="text-sm text-gray-500 mt-1">Daftar pengiriman barang ke lokasi Jasa Cuci</p>
                             </div>
+
+                            <form action="{{ route('barang.keluar.external-transfer.step1') }}" method="GET" class="flex flex-wrap items-end gap-2">
+                                {{-- Keep existing filters if any --}}
+                                @if(request('page'))
+                                    <input type="hidden" name="page" value="{{ request('page') }}">
+                                @endif
+                                
+                                <div>
+                                    <label for="start_date" class="block text-xs font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                                    <input type="date" name="start_date" id="start_date" value="{{ request('start_date') }}" 
+                                           class="w-full md:w-auto text-sm border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                                </div>
+                                
+                                <div>
+                                    <label for="end_date" class="block text-xs font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                                    <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}" 
+                                           class="w-full md:w-auto text-sm border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500">
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button type="submit" class="px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                        Filter
+                                    </button>
+                                    
+                                    @if(request('start_date') || request('end_date'))
+                                        <a href="{{ route('barang.keluar.external-transfer.step1') }}" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                                            Reset
+                                        </a>
+                                    @endif
+                                </div>
+                            </form>
+
                             <button onclick="toggleHistoryTab()"
-                                    class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 rounded transition">
+                                    class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 rounded transition md:ml-auto">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -295,7 +368,16 @@
                                         Transfer
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                        Stok Bertambah
+                                        Berat
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Susut
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Referensi
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Aksi
                                     </th>
                                 </tr>
                             </thead>
@@ -318,7 +400,7 @@
                                                     <svg class="w-4 h-4 mx-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                                     </svg>
-                                                    <span class="text-green-700 font-medium">{{ $tx->location->name ?? '-' }}</span>
+                                                    <span class="text-green-700 font-medium">{{ $stockTransfer->toLocation->name ?? '-' }}</span>
                                                 </div>
                                             @else
                                                 <span class="text-gray-700">{{ $tx->location->name ?? '-' }}</span>
@@ -326,16 +408,48 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right">
                                             <div class="text-sm font-semibold text-green-600">
-                                                +{{ number_format(abs($tx->quantity_change_grams), 2) }} gr
+                                                {{ number_format($stockTransfer->weight_grams ?? 0, 2) }} gr
                                             </div>
                                             <div class="text-xs text-gray-500">
-                                                ({{ number_format(abs($tx->quantity_change_grams) / 1000, 2) }} kg)
+                                                ({{ number_format(($stockTransfer->weight_grams ?? 0) / 1000, 2) }} kg)
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            @if(($stockTransfer->susut_grams ?? 0) > 0)
+                                                <div class="text-sm font-semibold text-red-600">
+                                                    {{ number_format($stockTransfer->susut_grams, 2) }} gr
+                                                </div>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-gray-100 text-gray-700">
+                                                #{{ $tx->id }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                            <div class="flex justify-center items-center space-x-2">
+                                                <a href="{{ route('barang.keluar.external-transfer.edit', $stockTransfer->id) }}" class="text-blue-600 hover:text-blue-900" title="Edit">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </a>
+                                                <form action="{{ route('barang.keluar.external-transfer.destroy', $stockTransfer->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini? Stok akan dikembalikan.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Hapus">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                    <td colspan="4" class="px-6 py-12 text-center">
+                                    <td colspan="7" class="px-6 py-12 text-center">
                                         <div class="flex flex-col items-center justify-center">
                                             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                                 <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,6 +512,103 @@
             toggleBtn.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
             progressSteps.classList.remove('hidden');
         }
+    }
+
+    // Grade Selection and Stock Check
+    const gradeSelect = document.querySelector('select[name="grade_company_id"]');
+
+    // Auto fetch stock info when grade changes
+    gradeSelect.addEventListener('change', function() {
+        // Reset stock check result
+        const resultEl = document.getElementById('stock-check-result');
+        if(resultEl) resultEl.classList.add('hidden');
+    });
+
+    function calculateTotalDeduction() {
+        const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+        const susut = parseFloat(document.getElementById('susut_grams').value || 0);
+        const total = weight + susut;
+
+        const infoEl = document.getElementById('total-deduction-info');
+        if (total > 0) {
+            infoEl.textContent = `Total pengurangan stok: ${new Intl.NumberFormat('id-ID').format(total)} gr (Transfer: ${weight} + Susut: ${susut})`;
+            infoEl.classList.remove('hidden');
+        } else {
+            infoEl.classList.add('hidden');
+        }
+    }
+
+    function checkStock() {
+        const gradeId = document.querySelector('select[name="grade_company_id"]').value;
+        const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+        const susut = parseFloat(document.getElementById('susut_grams').value || 0);
+        const totalNeeded = weight + susut;
+        const resultEl = document.getElementById('stock-check-result');
+
+        if (!gradeId) {
+            showStockResult('Pilih grade terlebih dahulu.', 'error');
+            return;
+        }
+
+        if (totalNeeded <= 0) {
+            showStockResult('Masukkan berat yang valid.', 'error');
+            return;
+        }
+
+        // Show loading
+        showStockResult('Mengecek stok...', 'info');
+
+        // Use the existing route for stock check (it's shared or similar)
+        // We need to check against Gudang Utama (ID 1 usually, or passed via blade)
+        // Since we don't have the route explicitly named for external, we can reuse the internal one
+        // OR better, use the one we saw in internal transfer: barang.keluar.transfer.stock_check
+        // Let's verify if that route exists and is usable.
+        // The internal transfer used: {{ route('barang.keluar.transfer.stock_check') }}
+        // Let's assume we can use the same one as it just checks stock availability.
+
+        fetch(`{{ route('barang.keluar.transfer.stock_check') }}?grade_company_id=${gradeId}&location_id={{ $gudangUtama->id ?? 1 }}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.ok) {
+                    showStockResult('Gagal mengecek stok.', 'error');
+                    return;
+                }
+
+                const available = parseFloat(data.available_grams);
+                if (available >= totalNeeded) {
+                    showStockResult(
+                        `✓ Stok mencukupi! Tersedia ${new Intl.NumberFormat('id-ID').format(available)} gram. (Butuh: ${new Intl.NumberFormat('id-ID').format(totalNeeded)} gr)`,
+                        'success'
+                    );
+                } else {
+                    showStockResult(
+                        `⚠ Stok tidak mencukupi! Hanya tersedia ${new Intl.NumberFormat('id-ID').format(available)} gram. (Butuh: ${new Intl.NumberFormat('id-ID').format(totalNeeded)} gr)`,
+                        'error'
+                    );
+                }
+            })
+            .catch(() => {
+                showStockResult('Gagal mengecek stok. Silakan coba lagi.', 'error');
+            });
+    }
+
+    function showStockResult(message, type) {
+        const resultEl = document.getElementById('stock-check-result');
+        resultEl.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-blue-600');
+
+        switch (type) {
+            case 'success':
+                resultEl.classList.add('text-green-600');
+                break;
+            case 'error':
+                resultEl.classList.add('text-red-600');
+                break;
+            case 'info':
+                resultEl.classList.add('text-blue-600');
+                break;
+        }
+
+        resultEl.textContent = message;
     }
 
     // Check if there's a page parameter (from pagination), if yes, show history tab
