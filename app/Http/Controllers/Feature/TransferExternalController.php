@@ -63,6 +63,14 @@ class TransferExternalController extends Controller
             });
         }
 
+        if ($request->filled('start_date')) {
+            $query->whereDate('transaction_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('transaction_date', '<=', $request->end_date);
+        }
+
         $transferExternalTransactions = $query->latest('transaction_date')
             ->latest('id')
             ->paginate(10);
@@ -85,6 +93,7 @@ class TransferExternalController extends Controller
             'grade_company_id' => 'required|exists:grades_company,id',
             'to_location_id' => 'required|exists:locations,id',
             'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
             'transfer_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
         ], [
@@ -97,10 +106,13 @@ class TransferExternalController extends Controller
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['from_location_id'] = $gudangUtama->id;
 
+        // Calculate total weight to be deducted (transfer weight + shrinkage)
+        $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+
         $hasEnoughStock = $this->service->hasEnoughStock(
             $validated['grade_company_id'], 
             $validated['from_location_id'], // Gudang Utama
-            $validated['weight_grams']
+            $totalWeight
         );
 
         if (!$hasEnoughStock) {
@@ -111,7 +123,7 @@ class TransferExternalController extends Controller
             
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Stok di Gudang Utama tidak mencukupi! Hanya tersedia " . number_format($availableStock, 2) . " gram.");
+                ->with('error', "Stok di Gudang Utama tidak mencukupi! Total yang dibutuhkan (Transfer + Susut): " . number_format($totalWeight, 2) . " gram. Tersedia: " . number_format($availableStock, 2) . " gram.");
         }
 
         $request->session()->put('external_transfer_step1', $validated);
@@ -155,5 +167,65 @@ class TransferExternalController extends Controller
         return redirect()
             ->route('barang.keluar.external-transfer.step1')
             ->with('success', 'Transfer eksternal berhasil dicatat dan stok diperbarui.');
+    }
+
+    public function edit($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+        $grades = \App\Models\GradeCompany::orderBy('name')->get();
+        $jasaCuciLocations = \App\Models\Location::where('name', 'NOT LIKE', '%IDM%')
+            ->where('name', 'NOT LIKE', '%DMK%')
+            ->where('name', '!=', 'Gudang Utama')
+            ->orderBy('name')
+            ->get();
+        
+        $gudangUtama = \App\Models\Location::where('name', 'Gudang Utama')->first();
+        
+        $availableStock = $this->service->getAvailableStock($transfer->grade_company_id, $gudangUtama->id);
+        $availableStock += $transfer->weight_grams + ($transfer->susut_grams ?? 0);
+
+        return view('admin.barang-keluar.external-transfer-edit', compact('transfer', 'grades', 'jasaCuciLocations', 'availableStock'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'grade_company_id' => 'required|exists:grades_company,id',
+            'to_location_id' => 'required|exists:locations,id',
+            'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
+            'transfer_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $gudangUtama = \App\Models\Location::where('name', 'Gudang Utama')->first();
+        $validated['from_location_id'] = $gudangUtama->id;
+
+        $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+        $availableStock = $this->service->getAvailableStock($validated['grade_company_id'], $validated['from_location_id']);
+        
+        $oldTransfer = \App\Models\StockTransfer::findOrFail($id);
+        if ($oldTransfer->grade_company_id == $validated['grade_company_id']) {
+            $availableStock += $oldTransfer->weight_grams + ($oldTransfer->susut_grams ?? 0);
+        }
+
+        if ($availableStock < $totalWeight) {
+             return back()->with('error', "Stok di Gudang Utama tidak mencukupi! Dibutuhkan: " . number_format($totalWeight, 2) . " gr. Tersedia: " . number_format($availableStock, 2) . " gr.");
+        }
+
+        $this->service->updateExternalTransfer($id, $validated);
+
+        return redirect()->route('barang.keluar.external-transfer.step1')
+            ->with('success', 'Transfer eksternal berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+        $transfer->transactions()->delete();
+        $transfer->delete();
+
+        return redirect()->route('barang.keluar.external-transfer.step1')
+            ->with('success', 'Transfer eksternal berhasil dihapus.');
     }
 }

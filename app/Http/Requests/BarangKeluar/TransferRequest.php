@@ -26,6 +26,7 @@ class TransferRequest extends FormRequest
             'from_location_id' => 'required|exists:locations,id',
             'to_location_id' => 'required|exists:locations,id|different:from_location_id',
             'weight_grams' => 'required|numeric|min:0.01',
+             'susut_grams' => 'nullable|numeric|min:0',
             'transfer_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
         ];

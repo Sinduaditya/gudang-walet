@@ -30,7 +30,7 @@ class TransferInternalController extends Controller
         }
 
         $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
-        
+
         $gradesWithStock = $stockSummary->map(function ($stock) {
             return [
                 'id' => $stock->grade_company_id,
@@ -46,8 +46,8 @@ class TransferInternalController extends Controller
             ->get();
 
         $query = \App\Models\StockTransfer::with([
-            'gradeCompany', 
-            'fromLocation', 
+            'gradeCompany',
+            'fromLocation',
             'toLocation',
         ])->whereHas('toLocation', function($q) {
             $q->where('name', 'LIKE', '%IDM%')
@@ -60,6 +60,14 @@ class TransferInternalController extends Controller
 
         if ($request->filled('location_id')) {
             $query->where('to_location_id', $request->location_id);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('transfer_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('transfer_date', '<=', $request->end_date);
         }
 
         $transferInternalTransactions = $query->latest('transfer_date')
@@ -84,6 +92,7 @@ class TransferInternalController extends Controller
             'from_location_id' => 'required|exists:locations,id',
             'to_location_id' => 'required|exists:locations,id|different:from_location_id',
             'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
             'transfer_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
         ], [
@@ -108,21 +117,24 @@ class TransferInternalController extends Controller
             $validated['from_location_id'] = $gudangUtama->id;
         }
 
+        // Calculate total weight to be deducted (transfer weight + shrinkage)
+        $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+
         $hasEnoughStock = $this->service->hasEnoughStock(
-            $validated['grade_company_id'], 
-            $validated['from_location_id'], 
-            $validated['weight_grams']
+            $validated['grade_company_id'],
+            $validated['from_location_id'],
+            $totalWeight
         );
 
         if (!$hasEnoughStock) {
             $availableStock = $this->service->getAvailableStock(
-                $validated['grade_company_id'], 
+                $validated['grade_company_id'],
                 $validated['from_location_id']
             );
-            
+
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Stok tidak mencukupi! Hanya tersedia " . number_format($availableStock, 2) . " gram.");
+                ->with('error', "Stok tidak mencukupi! Total yang dibutuhkan (Transfer + Susut): " . number_format($totalWeight, 2) . " gram. Tersedia: " . number_format($availableStock, 2) . " gram.");
         }
 
         // Store in session
@@ -184,8 +196,72 @@ class TransferInternalController extends Controller
         $available = $this->service->getAvailableStock($gradeId, $locationId);
 
         return response()->json([
-            'ok' => true, 
+            'ok' => true,
             'available_grams' => $available
         ]);
+    }
+
+    public function edit($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+        $grades = \App\Models\GradeCompany::orderBy('name')->get();
+        $locations = \App\Models\Location::where('name', 'NOT LIKE', '%Jasa Cuci%')
+            ->where('name', '!=', 'Gudang Utama')
+            ->orderBy('name')
+            ->get();
+        
+        // Get stock for the current location and grade to show available
+        $availableStock = $this->service->getAvailableStock($transfer->grade_company_id, $transfer->from_location_id);
+        // Add back the current transfer weight because we are editing it
+        $availableStock += $transfer->weight_grams + ($transfer->susut_grams ?? 0);
+
+        return view('admin.barang-keluar.transfer-edit', compact('transfer', 'grades', 'locations', 'availableStock'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'grade_company_id' => 'required|exists:grades_company,id',
+            'from_location_id' => 'required|exists:locations,id',
+            'to_location_id' => 'required|exists:locations,id|different:from_location_id',
+            'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
+            'transfer_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        // Check stock availability (excluding current transaction)
+        $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+        $availableStock = $this->service->getAvailableStock($validated['grade_company_id'], $validated['from_location_id']);
+        
+        // If editing same location/grade, we need to add back the old weight to available stock check
+        $oldTransfer = \App\Models\StockTransfer::findOrFail($id);
+        if ($oldTransfer->grade_company_id == $validated['grade_company_id'] && 
+            $oldTransfer->from_location_id == $validated['from_location_id']) {
+            $availableStock += $oldTransfer->weight_grams + ($oldTransfer->susut_grams ?? 0);
+        }
+
+        if ($availableStock < $totalWeight) {
+             return back()->with('error', "Stok tidak mencukupi! Dibutuhkan: " . number_format($totalWeight, 2) . " gr. Tersedia: " . number_format($availableStock, 2) . " gr.");
+        }
+
+        $this->service->updateTransferInternal($id, $validated);
+
+        return redirect()->route('barang.keluar.transfer.step1')
+            ->with('success', 'Transfer internal berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $transfer = \App\Models\StockTransfer::findOrFail($id);
+
+        // Delete associated inventory transactions
+        $transfer->transactions()->delete();
+
+        // Delete the transfer record
+        $transfer->delete();
+
+        return redirect()->route('barang.keluar.transfer.step1')
+            ->with('success', 'Transfer internal berhasil dihapus dan stok dikembalikan.');
     }
 }

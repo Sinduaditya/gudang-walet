@@ -1,24 +1,24 @@
 <?php
 
+use App\Models\Location;
+use App\Exports\GradeSupplierExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Master\LocationController;
 use App\Http\Controllers\Master\SupplierController;
+use App\Http\Controllers\Feature\PenjualanController;
 use App\Http\Controllers\Master\GradeCompanyController;
+use App\Http\Controllers\Feature\BarangKeluarController;
 use App\Http\Controllers\Feature\GradingGoodsController;
 use App\Http\Controllers\Master\GradeSupplierController;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Models\Location;
-use App\Exports\GradeSupplierExport;
-use App\Http\Controllers\Feature\BarangKeluarController;
-use App\Http\Controllers\Feature\PenjualanController;
-use App\Http\Controllers\Feature\TransferInternalController;
-use App\Http\Controllers\Feature\TransferExternalController;
-use App\Http\Controllers\Master\StokController;
 use App\Http\Controllers\Feature\IncomingGoodsController;
+use App\Http\Controllers\Feature\TrackingStockController;
 use App\Http\Controllers\Feature\ReceiveExternalController;
 use App\Http\Controllers\Feature\ReceiveInternalController;
+use App\Http\Controllers\Feature\TransferExternalController;
+use App\Http\Controllers\Feature\TransferInternalController;
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -111,6 +111,9 @@ Route::middleware(['auth'])->group(function () {
                         Route::get('/step2', [TransferInternalController::class, 'transferStep2'])->name('step2');
                         Route::post('/confirm', [TransferInternalController::class, 'transfer'])->name('store');
                         Route::get('/stock-check', [TransferInternalController::class, 'checkStock'])->name('stock_check');
+                        Route::get('/{id}/edit', [TransferInternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [TransferInternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [TransferInternalController::class, 'destroy'])->name('destroy');
                     });
 
                 // ========== TRANSFER EXTERNAL ==========
@@ -121,6 +124,9 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
                         Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
                         Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
+                        Route::get('/{id}/edit', [TransferExternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [TransferExternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [TransferExternalController::class, 'destroy'])->name('destroy');
                     });
                 // ========== RECEIVE INTERNAL ==========
                 Route::prefix('receive-internal')
@@ -144,11 +150,19 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/confirm', [ReceiveExternalController::class, 'receiveExternal'])->name('store');
 
                         Route::get('/stock-check', [ReceiveExternalController::class, 'checkExternalStock'])->name('stock_check');
+                        Route::get('/{id}/edit', [ReceiveExternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [ReceiveExternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [ReceiveExternalController::class, 'destroy'])->name('destroy');
                     });
             });
 
-        // Di dalam group middleware 'auth' and 'prefix' admin Anda
-        Route::get('/tracking-stok', [StokController::class, 'index'])->name('stok.tracking.index');
+
+        Route::prefix('tracking-stock')
+            ->name('tracking-stock.')
+            ->group(function () {
+                Route::get('/', [TrackingStockController::class, 'index'])->name('get.grade.company');
+                Route::get('/{id}', [TrackingStockController::class, 'detail'])->name('detail');
+            });
 
         // Master Route
         Route::resource('locations', LocationController::class);

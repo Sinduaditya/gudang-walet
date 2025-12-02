@@ -1,4 +1,3 @@
-{{-- resources/views/admin/barang-keluar/index.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
@@ -98,33 +97,29 @@
                     </div>
                 </a>
 
-                {{-- Card 4: Terima Barang Internal (dari IDM/DMK) --}}
-                <a href="{{ route('barang.keluar.receive-internal.step1') }}"
-                    class="group bg-white rounded-xl shadow-md p-8 border-2 border-transparent hover:border-indigo-500 hover:shadow-xl transition-all duration-300">
-                    <div class="flex items-center mb-4">
-                        <div
-                            class="w-14 h-14 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 transition-all duration-300">
-                            <svg class="w-8 h-8 text-indigo-600 group-hover:text-white transition-all duration-300"
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                        </div>
-                        <h3
-                            class="ml-4 text-xl font-bold text-gray-800 kgroup-hover:text-indigo-600 transition-all duration-300">
-                            Kembali Internal
-                        </h3>
-                    </div>
-                    <p class="text-gray-600 mb-4">Terima barang dari lokasi internal (IDM/DMK).</p>
-                    <div
-                        class="flex items-center text-indigo-600 font-medium group-hover:translate-x-2 transition-all duration-300">
-                        Terima Barang
-                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {{-- Card 4: Terima Barang Internal (dari DMK)
+            <a href="{{ route('barang.keluar.receive-internal.step1') }}"
+            class="group bg-white rounded-xl shadow-md p-8 border-2 border-transparent hover:border-indigo-500 hover:shadow-xl transition-all duration-300">
+                <div class="flex items-center mb-4">
+                    <div class="w-14 h-14 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 transition-all duration-300">
+                        <svg class="w-8 h-8 text-indigo-600 group-hover:text-white transition-all duration-300"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 7l5 5m0 0l-5 5m5-5H6" />
                         </svg>
                     </div>
-                </a>
+                    <h3 class="ml-4 text-xl font-bold text-gray-800 kgroup-hover:text-indigo-600 transition-all duration-300">
+                        Terima Internal
+                    </h3>
+                </div>
+                <p class="text-gray-600 mb-4">Terima barang dari lokasi internal (IDM/DMK).</p>
+                <div class="flex items-center text-indigo-600 font-medium group-hover:translate-x-2 transition-all duration-300">
+                    Terima Barang
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </div>
+            </a> --}}
 
                 {{-- Card 5: Terima Barang Eksternal (dari Jasa Cuci) --}}
                 <a href="{{ route('barang.keluar.receive-external.step1') }}"
@@ -158,4 +153,5 @@
 
         </div>
     </div>
+</div>
 @endsection
