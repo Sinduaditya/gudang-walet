@@ -154,6 +154,7 @@
                                                 </svg>
                                                 Barang akan dikirim dari lokasi ini
                                             </p>
+                                            <input type="hidden" name="from_location_id" value="{{ $gudangUtama->id ?? 1 }}">
                                         </div>
 
                                         {{-- ✅ FIXED: Lokasi Tujuan (Jasa Cuci) --}}
@@ -553,8 +554,8 @@
                 class="relative inline-block w-full max-w-md overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="w-full">
-                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                            <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -587,7 +588,7 @@
                                     </div>
                                     <div class="pt-2 border-t border-gray-200 flex justify-between font-semibold">
                                         <span class="text-gray-700">Total Pengurangan Stok:</span>
-                                        <span class="text-blue-700" id="modal-total"></span>
+                                        <span class="text-green-700" id="modal-total"></span>
                                     </div>
                                     <div class="pt-2 border-t border-gray-200">
                                         <span class="block text-gray-500 mb-1">Catatan:</span>
@@ -607,7 +608,7 @@
                         Batal
                     </button>
                     <button type="button" onclick="submitTransferForm()"
-                        class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm">
+                        class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:w-auto sm:text-sm">
                         Konfirmasi Transfer
                     </button>
                 </div>
