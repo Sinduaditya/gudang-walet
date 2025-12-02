@@ -84,7 +84,7 @@
             @endif
 
             {{-- Success Messages --}}
-            @if (session('success'))
+            {{-- @if (session('success'))
                 <div class="mb-6 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg shadow-sm">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -99,7 +99,7 @@
                         </div>
                     </div>
                 </div>
-            @endif
+            @endif --}}
 
             {{-- Tab Content Container --}}
             <div class="space-y-8">

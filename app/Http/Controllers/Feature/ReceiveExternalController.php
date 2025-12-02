@@ -218,17 +218,45 @@ class ReceiveExternalController extends Controller
     /**
      * Process receive external
      */
+    /**
+     * Process receive external (Direct submission from Step 1)
+     */
     public function receiveExternal(Request $request)
     {
-        $step1Data = session('receive_external_step1');
-        if (!$step1Data) {
-            return redirect()->route('barang.keluar.receive-external.step1')
-                ->with('error', 'Data tidak ditemukan');
+        $validated = $request->validate([
+            'grade_company_id' => 'required|exists:grades_company,id',
+            'from_location_id' => 'required|exists:locations,id',
+            'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
+            'transfer_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'grade_company_id.required' => 'Grade harus dipilih',
+            'from_location_id.required' => 'Lokasi asal harus dipilih',
+            'weight_grams.required' => 'Berat harus diisi',
+            'weight_grams.min' => 'Berat minimal 0.01 gram',
+        ]);
+
+        $sentStock = abs($this->getSentStockToLocation($validated['grade_company_id'], $validated['from_location_id']));
+        $receivedStock = $this->getReceivedStockFromLocation($validated['grade_company_id'], $validated['from_location_id']);
+        $pendingStock = $sentStock - $receivedStock;
+
+        // Calculate total weight to be deducted from pending stock (received weight + shrinkage)
+        $totalDeduction = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
+
+        if ($totalDeduction > $pendingStock) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'weight_grams' => "Total berat (Diterima + Susut) melebihi stok yang pending. Maksimal: " . number_format($pendingStock, 2) . " gram"
+                ]);
         }
 
-        $this->service->receiveExternal($step1Data);
+        // Set to_location_id ke Gudang Utama
+        $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+        $validated['to_location_id'] = $gudangUtama->id;
 
-        session()->forget('receive_external_step1');
+        $this->service->receiveExternal($validated);
 
         return redirect()
             ->route('barang.keluar.receive-external.step1')
