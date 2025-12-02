@@ -108,6 +108,9 @@ Route::middleware(['auth'])->group(function () {
                         Route::get('/step2', [TransferInternalController::class, 'transferStep2'])->name('step2');
                         Route::post('/confirm', [TransferInternalController::class, 'transfer'])->name('store');
                         Route::get('/stock-check', [TransferInternalController::class, 'checkStock'])->name('stock_check');
+                        Route::get('/{id}/edit', [TransferInternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [TransferInternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [TransferInternalController::class, 'destroy'])->name('destroy');
                     });
 
                 // ========== TRANSFER EXTERNAL ==========
@@ -118,6 +121,9 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/step1', [TransferExternalController::class, 'storeExternalTransferStep1'])->name('store-step1');
                         Route::get('/step2', [TransferExternalController::class, 'externalTransferStep2'])->name('step2');
                         Route::post('/confirm', [TransferExternalController::class, 'externalTransfer'])->name('store');
+                        Route::get('/{id}/edit', [TransferExternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [TransferExternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [TransferExternalController::class, 'destroy'])->name('destroy');
                     });
                 // ========== RECEIVE INTERNAL ==========
                 Route::prefix('receive-internal')
@@ -141,6 +147,9 @@ Route::middleware(['auth'])->group(function () {
                         Route::post('/confirm', [ReceiveExternalController::class, 'receiveExternal'])->name('store');
 
                         Route::get('/stock-check', [ReceiveExternalController::class, 'checkExternalStock'])->name('stock_check');
+                        Route::get('/{id}/edit', [ReceiveExternalController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [ReceiveExternalController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [ReceiveExternalController::class, 'destroy'])->name('destroy');
                     });
             });
 

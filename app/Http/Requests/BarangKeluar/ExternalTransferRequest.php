@@ -18,6 +18,7 @@ class ExternalTransferRequest extends FormRequest
             'from_location_id' => 'required|exists:locations,id',
             'to_location_id' => 'required|exists:locations,id',
             'weight_grams' => 'required|numeric|min:0.01',
+            'susut_grams' => 'nullable|numeric|min:0',
             // 'external_source' => 'required|string|max:255',
             'transfer_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',

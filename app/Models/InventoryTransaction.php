@@ -21,7 +21,7 @@ class InventoryTransaction extends Model
 
     protected $casts = [
         'transaction_date' => 'datetime',
-        'quantity_change_grams' => 'integer',
+        'quantity_change_grams' => 'float',
     ];
 
     /**

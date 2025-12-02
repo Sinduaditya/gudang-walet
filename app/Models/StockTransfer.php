@@ -14,6 +14,7 @@ class StockTransfer extends Model
     protected $fillable = [
         'transfer_date',
         'grade_company_id',
+        'susut_grams',
         'from_location_id',
         'to_location_id',
         'weight_grams',
@@ -41,7 +42,12 @@ class StockTransfer extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-     public function inventoryTransactions()
+    public function transactions()
+    {
+        return $this->hasMany(InventoryTransaction::class, 'reference_id');
+    }
+
+    public function inventoryTransactions()
     {
         return $this->hasMany(InventoryTransaction::class, 'reference_id')
             ->whereIn('transaction_type', ['TRANSFER_OUT', 'TRANSFER_IN']);

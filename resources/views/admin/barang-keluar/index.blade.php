@@ -1,4 +1,3 @@
-{{-- resources/views/admin/barang-keluar/index.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
@@ -86,7 +85,7 @@
                 </div>
             </a>
 
-            {{-- Card 4: Terima Barang Internal (dari IDM/DMK) --}}
+            {{-- Card 4: Terima Barang Internal (dari IDM/DMK)
             <a href="{{ route('barang.keluar.receive-internal.step1') }}"
             class="group bg-white rounded-xl shadow-md p-8 border-2 border-transparent hover:border-indigo-500 hover:shadow-xl transition-all duration-300">
                 <div class="flex items-center mb-4">
@@ -108,7 +107,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                 </div>
-            </a>
+            </a> --}}
 
             {{-- Card 5: Terima Barang Eksternal (dari Jasa Cuci) --}}
             <a href="{{ route('barang.keluar.receive-external.step1') }}"
