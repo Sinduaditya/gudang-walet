@@ -689,13 +689,6 @@
                 // Show loading
                 showStockResult('Mengecek stok...', 'info');
 
-                // Use the existing route for stock check (it's shared or similar)
-                // We need to check against Gudang Utama (ID 1 usually, or passed via blade)
-                // Since we don't have the route explicitly named for external, we can reuse the internal one
-                // OR better, use the one we saw in internal transfer: barang.keluar.transfer.stock_check
-                // Let's verify if that route exists and is usable.
-                // The internal transfer used: {{ route('barang.keluar.transfer.stock_check') }}
-                // Let's assume we can use the same one as it just checks stock availability.
 
                 fetch(
                         `{{ route('barang.keluar.transfer.stock_check') }}?grade_company_id=${gradeId}&location_id={{ $gudangUtama->id ?? 1 }}`)
