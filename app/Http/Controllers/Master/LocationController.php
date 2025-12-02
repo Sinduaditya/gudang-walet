@@ -22,10 +22,11 @@ class LocationController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $locations = $this->locationService->getAll();
-        return view('admin.locations.index', compact('locations'));
+        $search = $request->input('search');
+        $locations = $this->locationService->getAll($search);
+        return view('admin.locations.index', compact('locations', 'search'));
     }
 
     /**

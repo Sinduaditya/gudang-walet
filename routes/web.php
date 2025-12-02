@@ -83,6 +83,9 @@ Route::middleware(['auth'])->group(function () {
             return Excel::download(new GradeSupplierExport(), 'grade_suppliers.xlsx');
         })->name('grade-supplier.export');
 
+        Route::get('grade-company/export', [GradeCompanyController::class, 'export'])->name('grade-company.export');
+
+
         Route::prefix('barang-keluar')
             ->name('barang.keluar.')
             ->group(function () {

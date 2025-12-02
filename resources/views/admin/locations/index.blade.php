@@ -19,34 +19,69 @@
                 </a>
             </div>
 
-            <!-- Filter and Actions Section -->
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <!-- Search Section -->
+            <div class="mb-6">
+                <!-- Search Form -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <form method="GET" action="{{ route('locations.index') }}">
+                        <div class="flex flex-col lg:flex-row gap-4">
+                            <!-- Search Input -->
+                            <div class="flex-1">
+                                <label class="flex items-center text-sm text-gray-600 mb-2">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Cari Lokasi
+                                </label><input type="text" name="search" value="{{ request('search') }}"
+                                    placeholder="Cari berdasarkan nama..."
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                            </div>
 
-                    <!-- Search Section -->
-                    <div class="flex-1 max-w-md">
-                        <label class="flex items-center text-sm text-gray-600 mb-2">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Cari Lokasi
-                        </label>
-                        <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau deskripsi..."
-                            onkeyup="searchTable()"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                    </div>
+                            <!-- Buttons Group -->
+                            <div class="flex items-end gap-2">
+                                <!-- Search Button -->
+                                <button type="submit"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition duration-200 whitespace-nowrap">
+                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Cari
+                                </button>
 
-                    <!-- Action Buttons -->
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <a href="{{ route('locations.create') }}"
-                            class="flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Tambah Lokasi
-                        </a>
-                    </div>
+                                <!-- Reset Button -->
+                                <a href="{{ route('locations.index') }}"
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition duration-200 whitespace-nowrap">
+                                    Reset
+                                </a>
+
+                                <!-- Add Button -->
+                                <a href="{{ route('locations.create') }}"
+                                    class="flex items-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200 whitespace-nowrap">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Tambah Lokasi
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Active Search Display -->
+                    @if (request('search'))
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <span class="text-sm text-gray-600">Pencarian aktif:</span>
+                                <span
+                                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    "{{ request('search') }}"
+                                </span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -165,30 +200,6 @@
     </div>
 
     <script>
-        // Search functionality
-        function searchTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('locationsTable');
-            const tr = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < tr.length; i++) {
-                const tdName = tr[i].getElementsByTagName('td')[1];
-                const tdDesc = tr[i].getElementsByTagName('td')[2];
-
-                if (tdName && tdDesc) {
-                    const nameValue = tdName.textContent || tdName.innerText;
-                    const descValue = tdDesc.textContent || tdDesc.innerText;
-
-                    if (nameValue.toLowerCase().indexOf(filter) > -1 || descValue.toLowerCase().indexOf(filter) > -1) {
-                        tr[i].style.display = '';
-                    } else {
-                        tr[i].style.display = 'none';
-                    }
-                }
-            }
-        }
-
         // Export to Excel (placeholder)
         function exportExcel() {
             alert('Fitur export Excel akan segera tersedia');

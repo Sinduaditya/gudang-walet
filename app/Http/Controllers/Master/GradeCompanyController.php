@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Master;
 
+use App\Exports\GradeCompanyExport;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\GradeCompany\GradeCompanyService;
 use App\Http\Requests\GradeCompany\GradeCompanyRequest;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GradeCompanyController extends Controller
 {
@@ -23,6 +25,14 @@ class GradeCompanyController extends Controller
         $gradeCompany = $this->GradeCompanyService->getAll($search);
 
         return view('admin.grade-company.index', compact('gradeCompany', 'search'));
+    }
+
+    public function export(){
+        try {
+            return $this->GradeCompanyService->exportToExcel();
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mengekspor data: ' . $e->getMessage());
+        }
     }
 
     public function create()

@@ -124,9 +124,8 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($receipts as $i => $receipt)
                                 @php
-                                    // ✅ FIX: Update threshold ke 5% (bukan 0.5%)
                                     $hasHighPercentage = $receipt->receiptItems->some(function ($item) {
-                                        return abs($item->percentage_difference ?? 0) > 5; // ✅ 5% threshold
+                                        return abs($item->percentage_difference ?? 0) > 2; 
                                     });
                                 @endphp
                                 <tr class="{{ $hasHighPercentage ? 'bg-red-50 border-l-4 border-red-500' : '' }}">
@@ -136,9 +135,6 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ $receipt->supplier->name ?? '-' }}
-                                        @if ($hasHighPercentage)
-                                            <span class="text-red-600 text-xs ml-1">⚠️</span>
-                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ optional($receipt->unloading_date)->format('d/m/Y') }}
@@ -173,13 +169,12 @@
                                             </span>
                                         @endif
 
-                                        {{-- ✅ FIX: Update warning text dan tooltip --}}
                                         @if ($hasHighPercentage)
                                             <br>
                                             <span
                                                 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mt-1"
-                                                title="Ada item dengan selisih > 5%">
-                                                Selisih Tinggi (>5%)
+                                                title="Ada item dengan selisih > 2%">
+                                                Selisih Tinggi (>2%)
                                             </span>
                                         @endif
                                     </td>

@@ -101,8 +101,7 @@ class IncomingGoodsService
                         $percentageDifference = ($selisih / $beratAwal) * 100;
                     }
 
-                    // ✅ FIX: Flag if percentage is above 5% (not 0.5%)
-                    $isFlagged = $percentageDifference !== null && abs($percentageDifference) > 5;
+                    $isFlagged = $percentageDifference !== null && abs($percentageDifference) > 2;
 
                     ReceiptItem::create([
                         'purchase_receipt_id' => $receipt->id,

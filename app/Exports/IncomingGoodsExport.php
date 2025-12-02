@@ -38,7 +38,6 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
         foreach ($receipts as $receipt) {
             // Add individual items
             foreach ($receipt->receiptItems as $index => $item) {
-                // ✅ FIX: Calculate percentage correctly (selalu positif)
                 $percentage = 0;
                 $decimal = 0;
                 if ($item->supplier_weight_grams > 0) {
@@ -231,8 +230,8 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                 $percentage = (float) $row['percentage'];
                 $difference = (float) $row['difference'];
                 
-                if ($percentage > 5) { // ✅ 5% threshold
-                    // ✅ Red styling untuk selisih dan persentase di atas 5%
+                if ($percentage > 2) { // ✅ 2% threshold
+                    // ✅ Red styling untuk selisih dan persentase di atas 2%
                     $styles['G' . $rowNumber] = [
                         'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
                         'fill' => [
@@ -255,7 +254,7 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
                         ]
                     ];
                 } elseif ($difference < 0) {
-                    // ✅ Light red untuk susut tapi di bawah 5%
+                    // ✅ Light red untuk susut tapi di bawah 2%
                     $styles['G' . $rowNumber] = [
                         'font' => ['color' => ['rgb' => 'DC2626']]
                     ];

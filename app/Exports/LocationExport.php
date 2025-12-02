@@ -34,8 +34,8 @@ class LocationExport implements FromCollection, WithHeadings, WithMapping, Shoul
             $location->id,
             $location->name,
             $location->description ?? '-',
-            $location->created_at->format('d/m/Y H:i'),
-            $location->updated_at->format('d/m/Y H:i')
+            $location->created_at?->format('d/m/Y H:i') ?? '-',
+            $location->updated_at?->format('d/m/Y H:i') ?? '-'
         ];
     }
 

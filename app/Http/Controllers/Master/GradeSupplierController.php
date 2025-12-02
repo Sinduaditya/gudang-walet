@@ -16,13 +16,12 @@ class GradeSupplierController extends Controller
         $this->service = $service;
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $grades = $this->service->getAll();
+        $search = $request->input('search');
+        $grades = $this->service->getAll($search);
 
-        return view('admin.grade-supplier.index', [
-            'gradeSupplier' => $grades
-        ]);
+        return view('admin.grade-supplier.index', compact('grades', 'search'));
     }
 
     public function create()
