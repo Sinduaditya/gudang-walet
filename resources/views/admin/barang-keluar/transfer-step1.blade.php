@@ -95,7 +95,7 @@
                             <p class="text-sm text-gray-500 mt-1">Lengkapi data transfer stok internal</p>
                         </div>
 
-                        <form action="{{ route('barang.keluar.transfer.store-step1') }}" method="POST" class="p-6">
+                        <form id="transferForm" action="{{ route('barang.keluar.transfer.store') }}" method="POST" class="p-6">
                             @csrf
 
                             <div class="space-y-6">
@@ -306,7 +306,7 @@
                                     </svg>
                                     Batal
                                 </a>
-                                <button type="submit"
+                                <button type="button" onclick="showConfirmationModal()"
                                     class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-purple-800 focus:ring-4 focus:ring-purple-300 transition-all duration-200 shadow-lg hover:shadow-xl">
                                     Lanjut ke Konfirmasi
                                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -512,6 +512,76 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 text-center">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-50 transition-opacity" aria-hidden="true" onclick="closeConfirmationModal()"></div>
+
+            <!-- Modal panel -->
+            <!-- Modal panel -->
+            <div class="relative inline-block w-full max-w-md overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="w-full">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-purple-100">
+                            <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="mt-3 text-center w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Konfirmasi Transfer Internal
+                            </h3>
+                            <div class="mt-4 text-left">
+                                <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Grade:</span>
+                                        <span class="font-medium text-gray-900" id="modal-grade"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Lokasi Asal:</span>
+                                        <span class="font-medium text-gray-900" id="modal-from"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Lokasi Tujuan:</span>
+                                        <span class="font-medium text-gray-900" id="modal-to"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Berat Transfer:</span>
+                                        <span class="font-medium text-gray-900" id="modal-weight"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-500">Susut:</span>
+                                        <span class="font-medium text-red-600" id="modal-susut"></span>
+                                    </div>
+                                    <div class="pt-2 border-t border-gray-200 flex justify-between font-semibold">
+                                        <span class="text-gray-700">Total Pengurangan Stok:</span>
+                                        <span class="text-purple-700" id="modal-total"></span>
+                                    </div>
+                                    <div class="pt-2 border-t border-gray-200">
+                                        <span class="block text-gray-500 mb-1">Catatan:</span>
+                                        <p class="text-gray-700 italic" id="modal-notes">-</p>
+                                    </div>
+                                </div>
+                                <p class="mt-4 text-sm text-gray-500">
+                                    Pastikan data sudah benar. Stok akan berkurang secara otomatis setelah konfirmasi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row justify-between gap-3">
+                    <button type="button" onclick="closeConfirmationModal()" class="w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm">
+                        Batal
+                    </button>
+                    <button type="button" onclick="submitTransferForm()" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:w-auto sm:text-sm">
+                        Konfirmasi Transfer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
         <script>
             function toggleHistoryTab() {
@@ -675,6 +745,46 @@
                     fetchStockInfo(selectedGrade);
                 }
             });
+
+            function showConfirmationModal() {
+                const form = document.getElementById('transferForm');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                // Get values
+                const gradeSelect = document.getElementById('grade_company_id');
+                const gradeName = gradeSelect.options[gradeSelect.selectedIndex].text;
+                const fromLocation = "Gudang Utama"; // Fixed as per controller
+                const toSelect = document.querySelector('select[name="to_location_id"]');
+                const toLocation = toSelect.options[toSelect.selectedIndex].text;
+                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+                const susut = parseFloat(document.getElementById('susut_grams').value || 0);
+                const notes = document.querySelector('textarea[name="notes"]').value;
+
+                // Populate modal
+                document.getElementById('modal-grade').textContent = gradeName;
+                document.getElementById('modal-from').textContent = fromLocation;
+                document.getElementById('modal-to').textContent = toLocation;
+                document.getElementById('modal-weight').textContent = new Intl.NumberFormat('id-ID').format(weight) + ' gr';
+                document.getElementById('modal-susut').textContent = new Intl.NumberFormat('id-ID').format(susut) + ' gr';
+                document.getElementById('modal-total').textContent = new Intl.NumberFormat('id-ID').format(weight + susut) + ' gr';
+                document.getElementById('modal-notes').textContent = notes || '-';
+
+                // Show modal
+                document.getElementById('confirmationModal').classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
+
+            function closeConfirmationModal() {
+                document.getElementById('confirmationModal').classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+
+            function submitTransferForm() {
+                document.getElementById('transferForm').submit();
+            }
         </script>
     @endpush
 @endsection

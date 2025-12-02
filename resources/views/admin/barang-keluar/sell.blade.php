@@ -196,7 +196,7 @@
                                             Lokasi
                                         </th>
                                         <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-semibold text-gra-600 uppercase tracking-wider">
+                                            class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             Stok Berkurang
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -220,7 +220,7 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ $tx->location->name ?? '-' }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 text-right">
                                                 {{ number_format(abs($tx->quantity_change_grams), 2) }} gr
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
