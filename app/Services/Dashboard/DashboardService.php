@@ -121,16 +121,10 @@ class DashboardService
     public function getFlowBarangKeJasaCuci()
     {
     
-        $jasaCuciLocations = Location::where(function ($query) {
-            $query->where('name', 'LIKE', '%cuci%')
-              ->orWhere('name', 'LIKE', '%jasa%')
-              ->orWhere('name', 'LIKE', '%CV%')
-              ->orWhere('name', 'LIKE', '%PT%')
-              ->orWhere('name', 'LIKE', '%DMK%')
-              ->orWhere('name', 'LIKE', '%Demak%');
-        })
-        ->where('name', 'NOT LIKE', '%Gudang Utama%')
-        ->pluck('id');
+        $jasaCuciLocations = Location::where('name', 'NOT LIKE', '%Gudang Utama%')
+            ->where('name', 'NOT LIKE', '%DMK%')
+            ->where('name', 'NOT LIKE', '%Demak%')
+            ->pluck('id');
 
         if ($jasaCuciLocations->isEmpty()) {
             // Jika tidak ada lokasi jasa cuci, return data kosong
@@ -140,21 +134,18 @@ class DashboardService
             ];
         }
 
-        // Ambil transaksi penjualan ke lokasi jasa cuci bulan ini
-        $jasaCuciData = InventoryTransaction::with(['location', 'gradeCompany'])
-            ->where('transaction_type', 'SALE_OUT')
-            ->whereIn('location_id', $jasaCuciLocations)
-            ->whereMonth('transaction_date', Carbon::now()->month)
-            ->whereYear('transaction_date', Carbon::now()->year)
+        // Ambil transaksi transfer ke lokasi jasa cuci bulan ini (dari StockTransfer)
+        $jasaCuciData = StockTransfer::with(['toLocation'])
+            ->whereIn('to_location_id', $jasaCuciLocations)
+            ->whereMonth('transfer_date', Carbon::now()->month)
+            ->whereYear('transfer_date', Carbon::now()->year)
             ->get()
-            ->groupBy('location.name')
-            ->map(function ($transactions) {
-                return $transactions->sum(function ($tx) {
-                    return abs($tx->quantity_change_grams); // Ambil nilai absolut
-                }) / 1000; // Convert to kg
+            ->groupBy('toLocation.name')
+            ->map(function ($transfers) {
+                return $transfers->sum('weight_grams') / 1000; // Convert to kg
             })
             ->sortDesc()
-            ->take(5);
+            ->take(20);
 
         return [
             'labels' => $jasaCuciData->keys()->toArray(),

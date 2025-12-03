@@ -262,11 +262,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: @json($jasaCuci['data']),
                     backgroundColor: [
-                        'rgba(59, 130, 246, 0.8)',
-                        'rgba(34, 197, 94, 0.8)',
-                        'rgba(251, 191, 36, 0.8)',
-                        'rgba(239, 68, 68, 0.8)',
-                        'rgba(168, 85, 247, 0.8)'
+                        'rgba(59, 130, 246, 0.8)',   // Blue
+                        'rgba(34, 197, 94, 0.8)',    // Green
+                        'rgba(251, 191, 36, 0.8)',   // Yellow
+                        'rgba(239, 68, 68, 0.8)',    // Red
+                        'rgba(168, 85, 247, 0.8)',   // Purple
+                        'rgba(236, 72, 153, 0.8)',   // Pink
+                        'rgba(99, 102, 241, 0.8)',   // Indigo
+                        'rgba(20, 184, 166, 0.8)',   // Teal
+                        'rgba(249, 115, 22, 0.8)',   // Orange
+                        'rgba(139, 92, 246, 0.8)',   // Violet
+                        'rgba(107, 114, 128, 0.8)',  // Gray
+                        'rgba(132, 204, 22, 0.8)',   // Lime
+                        'rgba(6, 182, 212, 0.8)',    // Cyan
+                        'rgba(217, 70, 239, 0.8)',   // Fuchsia
+                        'rgba(244, 63, 94, 0.8)'     // Rose
                     ]
                 }]
             },

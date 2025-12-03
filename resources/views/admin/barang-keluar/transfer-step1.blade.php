@@ -220,7 +220,7 @@
                                                     oninput="calculateTotalDeduction()">
                                                 <button type="button" onclick="checkStock()" id="btnCheckStock"
                                                     class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                                    Cek Stok
+                                                                                    Cek Stok
                                                 </button>
                                             </div>
                                             <p id="stock-check-result" class="mt-2 text-sm hidden"></p>
@@ -232,16 +232,16 @@
                                         <div>
                                             <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M20 12H4" />
-                                                </svg>
-                                                Susut (gram)
-                                                <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
-                                            </label>
-                                            <input type="number" name="susut_grams" id="susut_grams"
-                                                value="{{ old('susut_grams', 0) }}" step="0.01" min="0"
-                                                placeholder="Masukkan berat susut (opsional)"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                                            </svg>
+                                            Susut (gram)
+                                            <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                        </label>
+                                        <input type="number" name="susut_grams" id="susut_grams"
+                                            value="{{ old('susut_grams', 0) }}" step="0.01" min="0"
+                                            placeholder="Masukkan berat susut (jika ada)"
                                                 oninput="calculateTotalDeduction()"
                                                 class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
                                             <p class="mt-1.5 text-xs text-gray-500">
