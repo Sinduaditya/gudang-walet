@@ -163,13 +163,47 @@
                 <div id="historyTab" class="tab-content hidden">
                     <div class="bg-white rounded-xl shadow-md border border-gray-200">
                         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h2 class="text-lg font-semibold text-gray-900">Daftar Penjualan Langsung</h2>
-                                    <p class="text-sm text-gray-500 mt-1">Daftar transaksi penjualan ke customer</p>
-                                </div>
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <form action="{{ route('barang.keluar.sell.form') }}" method="GET"
+                                    class="flex flex-wrap items-end gap-4">
+                                    {{-- Keep existing filters if any --}}
+                                    @if (request('page'))
+                                        <input type="hidden" name="page" value="{{ request('page') }}">
+                                    @endif
+
+                                    <div>
+                                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Dari
+                                            Tanggal</label>
+                                        <input type="date" name="start_date" id="start_date"
+                                            value="{{ request('start_date') }}"
+                                            class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+
+                                    <div>
+                                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Sampai
+                                            Tanggal</label>
+                                        <input type="date" name="end_date" id="end_date"
+                                            value="{{ request('end_date') }}"
+                                            class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button type="submit"
+                                            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                            Filter
+                                        </button>
+
+                                        @if (request('start_date') || request('end_date'))
+                                            <a href="{{ route('barang.keluar.sell.form') }}"
+                                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                                                Reset
+                                            </a>
+                                        @endif
+                                    </div>
+                                </form>
+
                                 <button onclick="toggleHistoryTab()"
-                                    class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 rounded transition">
+                                    class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 px-3 py-1.5 hover:bg-gray-100 rounded transition md:ml-auto">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M6 18L18 6M6 6l12 12" />
