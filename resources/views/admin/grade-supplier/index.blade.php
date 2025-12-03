@@ -114,7 +114,8 @@
                                     <td class="px-6 py-4 text-sm text-gray-900">{{ $grade->name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if ($grade->image_url)
-                                            <img src="{{ asset('storage/' . $grade->image_url) }}" alt="{{ $grade->name }}"
+                                            <img src="{{ Str::startsWith($grade->image_url, ['http://', 'https://']) ? $grade->image_url : asset('storage/' . $grade->image_url) }}"
+                                                alt="{{ $grade->name }}"
                                                 class="h-10 w-10 sm:h-12 sm:w-12 rounded-md object-cover">
                                         @else
                                             <span class="text-gray-400">-</span>

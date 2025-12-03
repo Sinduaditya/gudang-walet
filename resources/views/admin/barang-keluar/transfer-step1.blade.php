@@ -325,36 +325,31 @@
                     <div class="bg-white rounded-xl shadow-md border border-gray-200">
                         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h2 class="text-lg font-semibold text-gray-900">Riwayat Transfer Internal</h2>
-                                <p class="text-sm text-gray-500 mt-1">Daftar pengiriman barang ke lokasi internal (IDM/DMK)</p>
-                            </div>
-                            
-                            <form action="{{ route('barang.keluar.transfer.step1') }}" method="GET" class="flex flex-wrap items-end gap-2">
+                            <form action="{{ route('barang.keluar.transfer.step1') }}" method="GET" class="flex flex-wrap items-end gap-4">
                                 {{-- Keep existing filters if any --}}
                                 @if(request('page'))
                                     <input type="hidden" name="page" value="{{ request('page') }}">
                                 @endif
                                 
                                 <div>
-                                    <label for="start_date" class="block text-xs font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
                                     <input type="date" name="start_date" id="start_date" value="{{ request('start_date') }}" 
-                                           class="w-full md:w-auto text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                                           class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500">
                                 </div>
                                 
                                 <div>
-                                    <label for="end_date" class="block text-xs font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
                                     <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}" 
-                                           class="w-full md:w-auto text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                                           class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500">
                                 </div>
                                 
                                 <div class="flex gap-2">
-                                    <button type="submit" class="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors">
+                                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors">
                                         Filter
                                     </button>
                                     
                                     @if(request('start_date') || request('end_date'))
-                                        <a href="{{ route('barang.keluar.transfer.step1') }}" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                                        <a href="{{ route('barang.keluar.transfer.step1') }}" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
                                             Reset
                                         </a>
                                     @endif

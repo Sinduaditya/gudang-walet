@@ -48,6 +48,14 @@ class PenjualanController extends Controller
             $query->where('grade_company_id', $request->grade_id);
         }
 
+        if ($request->filled('start_date')) {
+            $query->whereDate('transaction_date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('transaction_date', '<=', $request->end_date);
+        }
+
         $penjualanTransactions = $query->latest('transaction_date')->paginate(10);
 
         return view('admin.barang-keluar.sell', compact(
