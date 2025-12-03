@@ -1,142 +1,192 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Stok')
+@section('title', 'Detail Stok - ' . $grade->name)
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
 
-        {{-- SECTION 1: Header Area (Horizontal Layout) --}}
-        <div class="flex flex-wrap items-start gap-6 mb-8">
+        {{-- TOMBOL KEMBALI (Di Kanan & Ada Gap) --}}
+        <div class="flex justify-end mb-6">
+            <a href="{{ route('tracking-stock.get.grade.company') }}"
+               class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition duration-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Kembali
+            </a>
+        </div>
 
-            {{-- 1. Kotak Kiri: Grade Info (dengan background hitam) --}}
-            <div class="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center shrink-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                {{-- Area Gambar dengan Background Hitam --}}
-                <div class="relative mb-4">
-                    {{-- Container Gambar Hitam --}}
-                    <div class="bg-gradient-to-br from-gray-900 to-black rounded-2xl flex items-center justify-center overflow-hidden shadow-inner" style="height: 220px; width: 220px;">
-                        @if(!empty($grade->image_url))
-                            <img src="{{ $grade->image_url }}"
-                                alt="{{ $grade->name }}"
-                                class="max-h-full max-w-full object-contain p-4">
-                        @else
-                            <div class="text-gray-400 text-sm flex flex-col items-center">
-                                <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span>No Image</span>
-                            </div>
-                        @endif
-                    </div>
+       {{-- SECTION 1: Header Area --}}
+        <div class="flex flex-col md:flex-row gap-6 mb-8 items-start">
 
-                    {{-- Badge Indicator --}}
-                    <div class="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full shadow-lg border-4 border-white flex items-center justify-center">
-                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+            {{-- 1. KARTU KIRI: Grade Info (FIXED SIZE) --}}
+            <div class="w-64 bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex-shrink-0">
+
+                {{-- Area Gambar (Kotak Hitam) --}}
+                <div class="relative w-full aspect-square bg-black rounded-xl mb-4 flex items-center justify-center overflow-hidden group shadow-inner">
+
+                    {{-- Badge Centang Hijau --}}
+                    <div class="absolute top-2 right-2 bg-white rounded-full p-1 shadow-sm z-10">
+                        <svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                         </svg>
                     </div>
-                </div>
 
-                {{-- Nama Grade --}}
-                <h2 class="text-lg font-bold text-gray-800 uppercase leading-tight px-2 tracking-wide">
-                    {{ $grade->name }}
-                </h2>
-                <p class="text-xs text-gray-500 mt-1">Grade Quality</p>
-            </div>
-
-            {{-- 2. Kotak Tengah: Total Stok Global --}}
-            <div class="bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl px-8 py-6 shrink-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div class="flex items-center gap-3 mb-2">
-                    <svg class="w-6 h-6 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <p class="text-sm font-medium text-blue-100 uppercase tracking-wide">Total Stok Global</p>
-                </div>
-                <div class="text-4xl font-bold">
-                    {{ number_format($globalStock, 0, ',', '.') }}
-                    <span class="text-lg font-medium text-blue-200 ml-2">Gr</span>
-                </div>
-            </div>
-
-            {{-- 3. Tombol Kanan: Kembali --}}
-            <div class="ml-auto">
-                <a href="{{ route('tracking-stock.get.grade.company') }}"
-                class="inline-flex items-center px-6 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 shadow-md hover:shadow-lg transition-all duration-300 font-medium border border-gray-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Kembali
-                </a>
-            </div>
-        </div>
-
-        {{-- SECTION 2: Search Bar --}}
-        <div class="mb-8">
-            <form action="{{ url()->current() }}" method="GET" class="flex gap-3">
-                {{-- Input Search --}}
-                <div class="flex-1 relative">
-                    <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input type="text"
-                           name="search"
-                           value="{{ $search }}"
-                           class="w-full pl-14 pr-5 py-4 bg-white border border-gray-300 rounded-xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                           placeholder="Cari lokasi...">
-                </div>
-
-                {{-- Tombol Search --}}
-                <button type="submit"
-                        class="px-12 py-4 bg-blue-600 text-white rounded-xl font-semibold uppercase hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg">
-                    Cari
-                </button>
-            </form>
-        </div>
-
-        {{-- SECTION 3: List Lokasi --}}
-        <div class="space-y-4">
-            @forelse($locationStocks as $stock)
-                {{-- Item List --}}
-                <div class="bg-white border border-gray-200 rounded-xl px-8 py-5 flex justify-between items-center hover:shadow-lg transition-all duration-300 group hover:border-blue-300">
-
-                    {{-- Nama Lokasi (Kiri) --}}
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center group-hover:from-blue-200 group-hover:to-blue-300 transition-all duration-300">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
+                    @if(!empty($grade->image_url))
+                        <img src="{{ $grade->image_url }}"
+                             alt="{{ $grade->name }}"
+                             class="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-110">
+                    @else
+                        <div class="flex flex-col items-center text-gray-500 text-xs">
+                            <span class="mb-1">No Image</span>
                         </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 uppercase tracking-wide">
-                                {{ $stock->location->name ?? 'Unknown' }}
-                            </h3>
-                            <p class="text-xs text-gray-500">Lokasi Penyimpanan</p>
-                        </div>
+                    @endif
+                </div>
+
+                {{-- Nama & Label --}}
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900 uppercase leading-tight">
+                        {{ $grade->name }}
+                    </h3>
+                    <p class="text-sm text-gray-500 mt-1">Grade Quality</p>
+                </div>
+            </div>
+
+            {{-- 2. KARTU KANAN: Stok & Deskripsi --}}
+            <div class="flex-1 w-full flex flex-col gap-4">
+
+                {{-- Kartu Biru (Total Stok) --}}
+                <div class="bg-blue-500 rounded-2xl p-6 text-white shadow-md flex flex-col justify-center h-40 relative overflow-hidden">
+                    <div class="relative z-10 flex items-center gap-2 mb-2 opacity-90">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <span class="text-sm font-bold tracking-widest uppercase">TOTAL STOK GLOBAL</span>
                     </div>
 
-                    {{-- Detail Stok (Kanan) --}}
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500 font-medium mb-1">Stok Tersedia</p>
-                        <div class="flex items-baseline gap-2 justify-end">
-                            <span class="text-3xl font-bold text-gray-800">
-                                {{ number_format($stock->total_stock, 0, ',', '.') }}
+                    <div class="relative z-10 flex items-baseline">
+                        <span class="text-5xl font-bold leading-none tracking-tight">
+                            {{ number_format($globalStock, 0, ',', '.') }}
+                        </span>
+                        <span class="ml-3 text-xl font-medium text-blue-100">Gr</span>
+                    </div>
+                </div>
+
+                {{-- Deskripsi --}}
+                <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex-1">
+                    <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Deskripsi
+                    </h4>
+                    <p class="text-sm text-gray-600 leading-relaxed">
+                        {{ $grade->description ?? 'Tidak ada deskripsi tambahan untuk grade ini.' }}
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        {{-- SECTION 2: Search & Actions --}}
+        <div class="mb-6">
+             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <form method="GET" action="{{ route('tracking-stock.detail', $grade->id) }}">
+                    <div class="flex flex-col lg:flex-row gap-4">
+                        {{-- Search Input --}}
+                        <div class="flex-1">
+                             <label class="flex items-center text-sm text-gray-600 mb-2">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Cari Lokasi Stok
+                            </label>
+                            <input type="text"
+                                   name="search"
+                                   value="{{ request('search') }}"
+                                   placeholder="Cari berdasarkan nama lokasi..."
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                        </div>
+
+                        {{-- Buttons Group --}}
+                        <div class="flex items-end gap-2">
+                            {{-- Search Button --}}
+                            <button type="submit"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition duration-200 whitespace-nowrap">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                Cari
+                            </button>
+
+                            {{-- Reset Button (Selalu Tampil) --}}
+                            <a href="{{ route('tracking-stock.detail', $grade->id) }}"
+                               class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition duration-200 whitespace-nowrap">
+                                Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+                {{-- Active Search Display --}}
+                @if (request('search'))
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="text-sm text-gray-600">Pencarian aktif:</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                "{{ request('search') }}"
                             </span>
-                            <span class="text-sm font-medium text-gray-500">Gram</span>
                         </div>
                     </div>
+                @endif
+             </div>
+        </div>
 
-                </div>
-            @empty
-                {{-- Empty State --}}
-                <div class="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center bg-white">
-                    <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                    <p class="text-gray-500 text-base font-medium">Data lokasi tidak ditemukan</p>
-                    <p class="text-gray-400 text-sm mt-1">Coba ubah kata kunci pencarian Anda</p>
-                </div>
-            @endforelse
+        {{-- SECTION 3: Table --}}
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="text-gray-700 font-semibold">Rincian Stok per Lokasi</h3>
+                <span class="text-sm text-gray-500">Menampilkan {{ count($locationStocks) }} lokasi</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Lokasi</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Stok Tersedia (Gram)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($locationStocks as $stock)
+                            <tr class="hover:bg-blue-50 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $loop->iteration }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ $stock->location->name ?? 'Lokasi Tidak Diketahui' }}</div>
+                                    <div class="text-xs text-gray-500">ID: #{{ $stock->location_id }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <span class="text-sm font-bold text-gray-900">{{ number_format($stock->total_stock, 0, ',', '.') }}</span>
+                                    <span class="text-xs text-gray-500 ml-1">Gr</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    @if($stock->total_stock > 0)
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>
+                                    @else
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Empty</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">Data lokasi tidak ditemukan</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
