@@ -162,6 +162,7 @@ Route::middleware(['auth'])->group(function () {
             ->group(function () {
                 Route::get('/', [TrackingStockController::class, 'index'])->name('get.grade.company');
                 Route::get('/{id}', [TrackingStockController::class, 'detail'])->name('detail');
+                Route::get('/{id}/susut', [TrackingStockController::class, 'susut'])->name('susut');
             });
 
         // Master Route

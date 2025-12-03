@@ -130,13 +130,24 @@ class BarangKeluarService
             // Hitung total pengurangan (berat transfer + susut)
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
-            // EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
+            // 1. EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
                 'location_id'            => $data['from_location_id'], // Gudang Utama
                 'quantity_change_grams'  => -$totalDeduction,
                 'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            // 2. EXTERNAL_TRANSFER_IN (positif) di Jasa Cuci (Lokasi Tujuan)
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['to_location_id'], // Jasa Cuci
+                'quantity_change_grams'  => abs($data['weight_grams']), // Hanya berat bersih yang masuk
+                'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
             ]);
@@ -191,13 +202,27 @@ class BarangKeluarService
                 'created_by'        => $userId,
             ]);
 
-            // RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
+            // 1. RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
                 'location_id'            => $data['to_location_id'], // Gudang Utama
                 'quantity_change_grams'  => abs($data['weight_grams']),
                 'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            // 2. RECEIVE_EXTERNAL_OUT (negatif) di Jasa Cuci (Lokasi Asal)
+            // Total pengurangan = Berat diterima + Susut
+            $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
+
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['from_location_id'], // Jasa Cuci
+                'quantity_change_grams'  => -$totalDeduction,
+                'transaction_type'       => 'RECEIVE_EXTERNAL_OUT',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
             ]);
@@ -371,12 +396,24 @@ class BarangKeluarService
 
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
+            // 1. EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
                 'location_id'            => $data['from_location_id'],
                 'quantity_change_grams'  => -$totalDeduction,
                 'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            // 2. EXTERNAL_TRANSFER_IN (positif) di Jasa Cuci
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['to_location_id'],
+                'quantity_change_grams'  => abs($data['weight_grams']),
+                'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
             ]);
@@ -403,12 +440,26 @@ class BarangKeluarService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
+            // 1. RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
             InventoryTransaction::create([
                 'transaction_date'       => $data['transfer_date'] ?? now(),
                 'grade_company_id'       => $data['grade_company_id'],
                 'location_id'            => $data['to_location_id'],
                 'quantity_change_grams'  => abs($data['weight_grams']),
                 'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
+                'reference_id'           => $transfer->id,
+                'created_by'             => $userId,
+            ]);
+
+            // 2. RECEIVE_EXTERNAL_OUT (negatif) di Jasa Cuci
+            $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
+
+            InventoryTransaction::create([
+                'transaction_date'       => $data['transfer_date'] ?? now(),
+                'grade_company_id'       => $data['grade_company_id'],
+                'location_id'            => $data['from_location_id'],
+                'quantity_change_grams'  => -$totalDeduction,
+                'transaction_type'       => 'RECEIVE_EXTERNAL_OUT',
                 'reference_id'           => $transfer->id,
                 'created_by'             => $userId,
             ]);
