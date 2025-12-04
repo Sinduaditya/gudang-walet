@@ -124,12 +124,12 @@ class ReceiveExternalController extends Controller
      */
     private function getSentStockToLocation(int $gradeCompanyId, int $locationId): float
     {
-        return InventoryTransaction::where('grade_company_id', $gradeCompanyId)
-            ->where('transaction_type', 'EXTERNAL_TRANSFER_OUT')
-            ->whereHas('stockTransfer', function($q) use ($locationId) {
-                $q->where('to_location_id', $locationId);
+        return \App\Models\StockTransfer::where('grade_company_id', $gradeCompanyId)
+            ->where('to_location_id', $locationId)
+            ->whereHas('transactions', function($q) {
+                $q->where('transaction_type', 'EXTERNAL_TRANSFER_OUT');
             })
-            ->sum('quantity_change_grams'); // Sudah negatif, jadi hasil negatif
+            ->sum('weight_grams');
     }
 
     /**

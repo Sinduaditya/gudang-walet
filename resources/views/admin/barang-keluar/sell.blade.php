@@ -453,7 +453,7 @@
             // Check if there's a page parameter (from pagination), if yes, show history tab
             document.addEventListener('DOMContentLoaded', function() {
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('page')) {
+                if (urlParams.has('page') || urlParams.has('start_date') || urlParams.has('end_date')) {
                     toggleHistoryTab();
                 }
 
