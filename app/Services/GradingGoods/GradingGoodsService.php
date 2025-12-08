@@ -64,7 +64,6 @@ class GradingGoodsService
         $results->getCollection()->transform(function ($item) {
             $warehouseWeight = $item->warehouse_weight_grams ?? 0;
             $totalGradingWeight = $item->total_grading_weight ?? 0;
-            
             $item->grading_difference = $totalGradingWeight - $warehouseWeight;
             
             return $item;
@@ -229,6 +228,8 @@ class GradingGoodsService
                         'weight_grams' => $weightGrams, // ✅ Sudah integer
                         'percentage_difference' => round($percentageDifference, 2),
                         'notes' => $notes,
+                        'outgoing_type' => $gradeData['outgoing_type'] ?? null,
+                        'category_grade' => $gradeData['category_grade'] ?? null,
                         'created_by' => auth()->id(),
                     ]);
 
@@ -296,6 +297,8 @@ class GradingGoodsService
                         'weight_grams' => $weightGrams, // ✅ Sudah integer
                         'percentage_difference' => round($percentageDifference, 2),
                         'notes' => $notes,
+                        'outgoing_type' => $gradeData['outgoing_type'] ?? null,
+                        'category_grade' => $gradeData['category_grade'] ?? null,
                         'created_by' => auth()->id(),
                     ]);
 
@@ -398,6 +401,8 @@ class GradingGoodsService
             'quantity_change_grams' => abs($sortingResult->weight_grams),
             'transaction_type' => 'GRADING_IN',
             'reference_id' => $sortingResult->id,
+            'outgoing_type' => $sortingResult->outgoing_type, 
+            'category_grade' => $sortingResult->category_grade, 
             'created_by' => $sortingResult->created_by,
         ]);
 

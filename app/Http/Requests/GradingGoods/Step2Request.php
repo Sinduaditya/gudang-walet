@@ -19,6 +19,8 @@ class Step2Request extends FormRequest
             'grades.*.quantity' => 'required|numeric|min:0', // ✅ numeric instead of integer
             'grades.*.weight_grams' => 'required|numeric|min:0', // ✅ numeric instead of integer
             'grades.*.notes' => 'nullable|string|max:1000',
+            'grades.*.outgoing_type' => 'nullable|in:penjualan_langsung,internal,external', // ✅ Ditambahkan
+            'grades.*.category_grade' => 'nullable|in:IDM A,IDM B', // ✅ Ditambahkan
             'global_notes' => 'nullable|string|max:1000',
         ];
     }

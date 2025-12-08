@@ -42,7 +42,9 @@ class GradingGoodsController extends Controller
 
         $grading = $allGradingResults->first();
 
-        return view('admin.grading-goods.show', compact('grading', 'allGradingResults'));
+        $notaWeight = $grading->receiptItem->supplier_weight_grams ?? 0;
+
+        return view('admin.grading-goods.show', compact('grading', 'allGradingResults', 'notaWeight'));
     }
 
     public function createStep1(Request $request)
@@ -141,6 +143,8 @@ class GradingGoodsController extends Controller
             'grades.*.quantity' => 'required|numeric|min:0', 
             'grades.*.weight_grams' => 'required|numeric|min:0', 
             'grades.*.notes' => 'nullable|string',
+            'grades.*.outgoing_type' => 'nullable|in:penjualan_langsung,internal,external',
+            'grades.*.category_grade' => 'nullable|in:IDM A,IDM B',
             'global_notes' => 'nullable|string',
         ]);
 
@@ -155,7 +159,10 @@ class GradingGoodsController extends Controller
                     'grade_company_name' => $grade['grade_company_name'],
                     'quantity' => (int) $grade['quantity'], 
                     'weight_grams' => (int) $grade['weight_grams'], 
+                    'outgoing_type' => $grade['outgoing_type'] ?? null,
+                    'category_grade' => $grade['category_grade'] ?? null,
                     'notes' => $grade['notes'] ?? null,
+
                 ];
             }
 

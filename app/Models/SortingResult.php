@@ -11,16 +11,31 @@ class SortingResult extends Model
 
     protected $table = 'sorting_results';
 
-    protected $fillable = [
-        'grading_date',
-        'receipt_item_id',
-        'grade_company_id',
-        'weight_grams',
-        'quantity',
-        'percentage_difference',
-        'notes',
-        'created_by'
-    ];
+    protected $fillable = ['grading_date', 'receipt_item_id', 'grade_company_id', 'weight_grams', 'quantity', 'percentage_difference', 'notes', 'outgoing_type', 'category_grade', 'created_by'];
+
+    const OUTGOING_TYPE_PENJUALAN_LANGSUNG = 'penjualan_langsung';
+    const OUTGOING_TYPE_INTERNAL = 'internal';
+    const OUTGOING_TYPE_EXTERNAL = 'external';
+
+    const CATEGORY_GRADE_IDM_A = 'IDM A';
+    const CATEGORY_GRADE_IDM_B = 'IDM B';
+
+    public static function getOutgoingTypes()
+    {
+        return [
+            self::OUTGOING_TYPE_PENJUALAN_LANGSUNG => 'Penjualan Langsung',
+            self::OUTGOING_TYPE_INTERNAL => 'Internal',
+            self::OUTGOING_TYPE_EXTERNAL => 'External',
+        ];
+    }
+
+    public static function getCategoryGrades()
+    {
+        return [
+            self::CATEGORY_GRADE_IDM_A => 'IDM A',
+            self::CATEGORY_GRADE_IDM_B => 'IDM B',
+        ];
+    }
 
     protected $casts = [
         'grading_date' => 'date',
@@ -45,25 +60,11 @@ class SortingResult extends Model
 
     public function purchaseReceipt()
     {
-        return $this->hasOneThrough(
-            PurchaseReceipt::class,
-            ReceiptItem::class,
-            'id',
-            'id', 
-            'receipt_item_id',
-            'purchase_receipt_id'
-        );
+        return $this->hasOneThrough(PurchaseReceipt::class, ReceiptItem::class, 'id', 'id', 'receipt_item_id', 'purchase_receipt_id');
     }
 
     public function supplier()
     {
-        return $this->hasOneThrough(
-            Supplier::class,
-            PurchaseReceipt::class,
-            'id',
-            'id',
-            'receipt_item_id',
-            'supplier_id'
-        )->through('receiptItem');
+        return $this->hasOneThrough(Supplier::class, PurchaseReceipt::class, 'id', 'id', 'receipt_item_id', 'supplier_id')->through('receiptItem');
     }
 }
