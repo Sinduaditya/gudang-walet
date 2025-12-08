@@ -90,6 +90,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Tanggal Grading</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Grade Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat Nota (gr)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat Gudang (gr)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Grading (gr)</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Selisih (gr)</th>
@@ -101,6 +102,7 @@
                             @forelse($gradings as $i => $grading)
                                 @php
                                     // ✅ Hitung selisih dan persentase
+                                    $supplierWeight = $grading->supplier_weight_grams ?? 0;
                                     $warehouseWeight = $grading->warehouse_weight_grams ?? 0;
                                     $totalGradingWeight = $grading->total_grading_weight ?? 0;
                                     $difference = $totalGradingWeight - $warehouseWeight;
@@ -119,6 +121,9 @@
                                         <div class="text-xs text-gray-500">
                                             {{ $grading->total_grades }} grade hasil
                                         </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 font-mono">
+                                        {{ number_format($supplierWeight, 0, ',', '.') }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900 font-mono">
                                         {{ number_format($warehouseWeight, 0, ',', '.') }}
@@ -178,7 +183,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-6 py-12 text-center text-gray-500">
+                                    <td colspan="10" class="px-6 py-12 text-center text-gray-500">
                                         @if(request('month') || request('year'))
                                             Tidak ada data grading untuk filter yang dipilih.
                                         @else
