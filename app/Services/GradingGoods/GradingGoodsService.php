@@ -29,10 +29,10 @@ class GradingGoodsService
                 'grades_supplier.name as grade_supplier_name',
                 'purchase_receipts.receipt_date',
                 'suppliers.name as supplier_name',
-                DB::raw('MIN(sorting_results.grading_date) as grading_date'), 
-                DB::raw('COUNT(sorting_results.id) as total_grades'), 
-                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'), 
-                DB::raw('MIN(sorting_results.id) as first_sorting_id') 
+                DB::raw('MIN(sorting_results.grading_date) as grading_date'),
+                DB::raw('COUNT(sorting_results.id) as total_grades'),
+                DB::raw('SUM(sorting_results.weight_grams) as total_grading_weight'),
+                DB::raw('MIN(sorting_results.id) as first_sorting_id')
             ])
             ->join('sorting_results', 'receipt_items.id', '=', 'sorting_results.receipt_item_id')
             ->leftJoin('grades_supplier', 'receipt_items.grade_supplier_id', '=', 'grades_supplier.id')
@@ -41,7 +41,7 @@ class GradingGoodsService
             ->groupBy([
                 'receipt_items.id',
                 'receipt_items.warehouse_weight_grams',
-                'receipt_items.supplier_weight_grams', 
+                'receipt_items.supplier_weight_grams',
                 'receipt_items.status',
                 'grades_supplier.name',
                 'purchase_receipts.receipt_date',
@@ -60,12 +60,12 @@ class GradingGoodsService
         }
 
         $results = $query->paginate($perPage)->appends(request()->query());
-        
+
         $results->getCollection()->transform(function ($item) {
             $warehouseWeight = $item->warehouse_weight_grams ?? 0;
             $totalGradingWeight = $item->total_grading_weight ?? 0;
             $item->grading_difference = $totalGradingWeight - $warehouseWeight;
-            
+
             return $item;
         });
 
@@ -94,7 +94,7 @@ class GradingGoodsService
             ->groupBy([
                 'receipt_items.id',
                 'receipt_items.warehouse_weight_grams',
-                'receipt_items.supplier_weight_grams', 
+                'receipt_items.supplier_weight_grams',
                 'receipt_items.status',
                 'grades_supplier.name',
                 'purchase_receipts.receipt_date',
@@ -113,13 +113,13 @@ class GradingGoodsService
         }
 
         $results = $query->get();
-        
+
         $results->transform(function ($item) {
             $warehouseWeight = $item->warehouse_weight_grams ?? 0;
             $totalGradingWeight = $item->total_grading_weight ?? 0;
-            
+
             $item->grading_difference = $totalGradingWeight - $warehouseWeight;
-            
+
             return $item;
         });
 
@@ -186,7 +186,7 @@ class GradingGoodsService
         try {
             return DB::transaction(function () use ($receiptItemId, $gradesData, $globalNotes) {
                 $receiptItem = ReceiptItem::findOrFail($receiptItemId);
-                
+
                 // Hapus semua sorting results lama untuk receipt item ini
                 $oldSortingResults = SortingResult::where('receipt_item_id', $receiptItemId)->get();
                 foreach ($oldSortingResults as $oldResult) {
@@ -199,24 +199,24 @@ class GradingGoodsService
                 // Buat sorting result baru untuk setiap grade
                 foreach ($gradesData as $index => $gradeData) {
                     $gradeCompany = GradeCompany::firstOrCreate(
-                        ['name' => $gradeData['grade_company_name']], 
+                        ['name' => $gradeData['grade_company_name']],
                         ['name' => $gradeData['grade_company_name']]
                     );
 
                     $warehouseWeight = $receiptItem->warehouse_weight_grams;
-                    
+
                     // ✅ FIX: Pastikan casting ke integer
                     $weightGrams = (int) $gradeData['weight_grams'];
                     $quantity = (int) $gradeData['quantity'];
-                    
-                    $percentageDifference = $warehouseWeight > 0 
-                        ? abs((($weightGrams - $warehouseWeight) / $warehouseWeight) * 100) 
+
+                    $percentageDifference = $warehouseWeight > 0
+                        ? abs((($weightGrams - $warehouseWeight) / $warehouseWeight) * 100)
                         : 0;
 
                     // Gabungkan catatan
                     $notes = collect([
-                        $globalNotes, 
-                        $gradeData['notes'] ?? null, 
+                        $globalNotes,
+                        $gradeData['notes'] ?? null,
                         $index > 0 ? 'Grade ke-' . ($index + 1) . ' dari grading berganda' : null
                     ])->filter()->implode('. ');
 
@@ -279,7 +279,7 @@ class GradingGoodsService
                     // ✅ FIX: Pastikan casting ke integer
                     $weightGrams = (int) $gradeData['weight_grams'];
                     $quantity = (int) $gradeData['quantity'];
-                    
+
                     // ✅ FIX: Hitung persentase berdasarkan berat asal gudang (bukan selisih dengan original)
                     $percentageDifference = $originalWeight > 0 ? abs((($weightGrams - $originalWeight) / $originalWeight) * 100) : 0;
 
@@ -367,7 +367,7 @@ class GradingGoodsService
             return DB::transaction(function () use ($receiptItemId) {
                 // ✅ Hapus semua sorting results untuk receipt item ini
                 $sortingResults = SortingResult::where('receipt_item_id', $receiptItemId)->get();
-                
+
                 foreach ($sortingResults as $sorting) {
                     $this->deleteInventoryFromGrading($sorting->id);
                     $sorting->delete();
@@ -390,19 +390,30 @@ class GradingGoodsService
     private function createInventoryFromGrading(SortingResult $sortingResult)
     {
         $defaultLocation = Location::where('name', 'Gudang Utama')->first();
+
         if (!$defaultLocation || !$sortingResult->grade_company_id || !$sortingResult->weight_grams) {
             return;
+        }
+
+        // 1. CARI SUPPLIER ID
+        // Alur: SortingResult -> ReceiptItem -> PurchaseReceipt -> Supplier
+        $supplierId = null;
+        if ($sortingResult->receiptItem &&
+            $sortingResult->receiptItem->purchaseReceipt) {
+            $supplierId = $sortingResult->receiptItem->purchaseReceipt->supplier_id;
         }
 
         InventoryTransaction::create([
             'transaction_date' => $sortingResult->grading_date,
             'grade_company_id' => $sortingResult->grade_company_id,
             'location_id' => $defaultLocation->id,
+            'supplier_id' => $supplierId, // <--- SIMPAN ID SUPPLIER DISINI
             'quantity_change_grams' => abs($sortingResult->weight_grams),
             'transaction_type' => 'GRADING_IN',
             'reference_id' => $sortingResult->id,
-            'outgoing_type' => $sortingResult->outgoing_type, 
-            'category_grade' => $sortingResult->category_grade, 
+            'sorting_result_id' => $sortingResult->id,
+            'outgoing_type' => $sortingResult->outgoing_type,
+            'category_grade' => $sortingResult->category_grade,
             'created_by' => $sortingResult->created_by,
         ]);
 

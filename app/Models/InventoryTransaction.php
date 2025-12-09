@@ -13,6 +13,7 @@ class InventoryTransaction extends Model
         'transaction_date',
         'grade_company_id',
         'location_id',
+        'supplier_id',
         'quantity_change_grams',
         'transaction_type',
         'reference_id',
@@ -79,5 +80,10 @@ class InventoryTransaction extends Model
     public function scopeIncoming($query)
     {
         return $query->whereIn('transaction_type', ['PURCHASE_IN', 'TRANSFER_IN']);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 }
