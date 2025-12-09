@@ -31,7 +31,12 @@ class ReceiveExternalController extends Controller
             ->get();
 
         $query = InventoryTransaction::where('transaction_type', 'RECEIVE_EXTERNAL_IN')
-            ->with(['gradeCompany', 'location', 'stockTransfer.fromLocation'])
+            ->with([
+                'gradeCompany', 
+                'location', 
+                'stockTransfer.fromLocation',
+                'sortingResult.receiptItem.purchaseReceipt.supplier'
+            ])
             ->whereHas('stockTransfer.fromLocation', function($q) {
                 $q->where('name', 'NOT LIKE', '%IDM%')
                   ->where('name', 'NOT LIKE', '%DMK%');
@@ -194,6 +199,20 @@ class ReceiveExternalController extends Controller
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['to_location_id'] = $gudangUtama->id;
 
+        // ✅ AUTO-POPULATE sorting_result_id dari transfer terakhir ke lokasi ini
+        // Kita cari transfer terakhir yang dikirim KE lokasi ini (to_location_id = from_location_id kita sekarang)
+        // dengan grade yang sama.
+        $lastTransfer = \App\Models\StockTransfer::where('grade_company_id', $validated['grade_company_id'])
+            ->where('to_location_id', $validated['from_location_id']) // Kita terima DARI lokasi yang dulu kita kirim KE sana
+            ->whereNotNull('sorting_result_id')
+            ->latest('transfer_date')
+            ->latest('id')
+            ->first();
+
+        if ($lastTransfer) {
+            $validated['sorting_result_id'] = $lastTransfer->sorting_result_id;
+        }
+
         $request->session()->put('receive_external_step1', $validated);
 
         return redirect()->route('barang.keluar.receive-external.step2');
@@ -263,6 +282,18 @@ class ReceiveExternalController extends Controller
         // Set to_location_id ke Gudang Utama
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['to_location_id'] = $gudangUtama->id;
+
+        // ✅ AUTO-POPULATE sorting_result_id dari transfer terakhir ke lokasi ini
+        $lastTransfer = \App\Models\StockTransfer::where('grade_company_id', $validated['grade_company_id'])
+            ->where('to_location_id', $validated['from_location_id'])
+            ->whereNotNull('sorting_result_id')
+            ->latest('transfer_date')
+            ->latest('id')
+            ->first();
+
+        if ($lastTransfer) {
+            $validated['sorting_result_id'] = $lastTransfer->sorting_result_id;
+        }
 
         $this->service->receiveExternal($validated);
 

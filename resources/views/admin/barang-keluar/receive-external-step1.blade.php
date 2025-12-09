@@ -443,6 +443,10 @@
                                         </th>
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Supplier
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             Grade
                                         </th>
                                         <th scope="col"
@@ -471,7 +475,10 @@
                                     @forelse($receiveExternalTransactions as $tx)
                                         <tr class="hover:bg-gray-50 transition-colors duration-150">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y H:i') }}
+                                                {{ \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y') }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {{ $tx->sortingResult->receiptItem->purchaseReceipt->supplier->name ?? '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 {{ $tx->gradeCompany->name ?? '-' }}
@@ -806,6 +813,8 @@
                 } else {
                     // ✅ Stok mencukupi
                     const remaining = availableStockAtLocation - totalDeduction;
+                    const percentage = (remaining / availableStockAtLocation) * 100;
+                    
                     stockValidation.innerHTML = `
                 <div class="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
                     <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -814,7 +823,7 @@
                     <div>
                         <span class="font-bold">Stok cukup!</span><br>
                         <span>Total Pengurangan: <strong>${totalDeduction.toLocaleString()} gr</strong></span><br>
-                        <span>Sisa Pending: <strong>${remaining.toLocaleString()} gr</strong></span>
+                        <span>Sisa Pending: <strong>${remaining.toLocaleString()} gr (${percentage.toFixed(2)}%)</strong></span>
                     </div>
                 </div>
             `;

@@ -40,6 +40,7 @@ class TransferExternalController extends Controller
                 'id' => $source->id, // Use SortingResult ID
                 'name' => $source->gradeCompany->name ?? 'Unknown',
                 'supplier_name' => $source->receiptItem->purchaseReceipt->supplier->name ?? 'Unknown',
+                'supplier_id' => $source->receiptItem->purchaseReceipt->supplier_id ?? null,
                 'grading_date' => $source->grading_date ? $source->grading_date->format('d M Y') : '-',
                 'batch_stock_grams' => $batchRemaining,
                 'total_stock_grams' => $batchRemaining,
