@@ -6,6 +6,7 @@ use App\Models\InventoryTransaction;
 use App\Models\StockTransfer;
 use App\Models\GradeCompany;
 use App\Models\Location;
+use App\Models\SortingResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,29 +18,73 @@ class BarangKeluarService
      * @param int $sortingResultId
      * @return float
      */
-    public function getBatchRemainingStock(int $sortingResultId, ?int $locationId = null): float
+
+    /**
+     * Helper untuk mengambil supplier_id dari sorting_result_id
+     */
+    // private function getSupplierIdFromSortingResult($sortingResultId)
+    // {
+    //     if (!$sortingResultId) return null;
+
+    //     $sortingResult = SortingResult::with('receiptItem.purchaseReceipt')->find($sortingResultId);
+
+    //     return $sortingResult->receiptItem->purchaseReceipt->supplier_id ?? null;
+    // }
+
+    private function getSupplierIdFromSortingResult($sortingResultId)
     {
-        $initialWeight = \App\Models\SortingResult::where('id', $sortingResultId)->value('weight_grams') ?? 0;
-        
-        // If location is specified, only include initial weight if it's Gudang Utama (assuming batches start there)
-        // We can fetch Gudang Utama ID or assume it's 1, but safer to check name if possible.
-        // For performance, we might want to cache this ID, but for now query is fine.
-        if ($locationId) {
-            $gudangUtama = Location::where('name', 'Gudang Utama')->first();
-            if ($gudangUtama && $locationId != $gudangUtama->id) {
-                $initialWeight = 0;
-            }
+        if (!$sortingResultId) {
+            return null;
         }
 
+        $sortingResult = SortingResult::with('receiptItem.purchaseReceipt')->find($sortingResultId);
+
+        // Pengecekan bertingkat agar tidak error "Attempt to read property on null"
+        if ($sortingResult && $sortingResult->receiptItem && $sortingResult->receiptItem->purchaseReceipt) {
+            return $sortingResult->receiptItem->purchaseReceipt->supplier_id;
+        }
+
+        return null;
+    }
+
+    // public function getBatchRemainingStock(int $sortingResultId, ?int $locationId = null): float
+    // {
+    //     $initialWeight = \App\Models\SortingResult::where('id', $sortingResultId)->value('weight_grams') ?? 0;
+
+    //     // If location is specified, only include initial weight if it's Gudang Utama (assuming batches start there)
+    //     // We can fetch Gudang Utama ID or assume it's 1, but safer to check name if possible.
+    //     // For performance, we might want to cache this ID, but for now query is fine.
+    //     if ($locationId) {
+    //         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+    //         if ($gudangUtama && $locationId != $gudangUtama->id) {
+    //             $initialWeight = 0;
+    //         }
+    //     }
+
+    //     $query = InventoryTransaction::where('sorting_result_id', $sortingResultId);
+
+    //     if ($locationId) {
+    //         $query->where('location_id', $locationId);
+    //     }
+
+    //     $deductions = $query->sum('quantity_change_grams');
+
+    //     return max(0, $initialWeight + $deductions);
+    // }
+    public function getBatchRemainingStock(int $sortingResultId, ?int $locationId = null): float
+    {
+        // Query transaksi untuk batch ini
         $query = InventoryTransaction::where('sorting_result_id', $sortingResultId);
-        
+
+        // Jika location ditentukan, HANYA hitung transaksi di lokasi itu
         if ($locationId) {
             $query->where('location_id', $locationId);
         }
 
-        $deductions = $query->sum('quantity_change_grams');
+        // Akumulasi semua transaksi (GRADING_IN positif + Outgoing negatif)
+        $totalStock = $query->sum('quantity_change_grams');
 
-        return max(0, $initialWeight + $deductions);
+        return max(0, $totalStock);
     }
 
     /**
@@ -54,15 +99,18 @@ class BarangKeluarService
         return DB::transaction(function () use ($data) {
             $userId = Auth::id();
 
+            $supplierId = $this->getSupplierIdFromSortingResult($data['sorting_result_id'] ?? null);
+
             return InventoryTransaction::create([
-                'transaction_date'       => $data['transaction_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['location_id'],
-                'quantity_change_grams'  => -abs($data['weight_grams']),
-                'transaction_type'       => 'SALE_OUT',
-                'reference_id'           => null,
-                'sorting_result_id'      => $data['sorting_result_id'] ?? null,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transaction_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['location_id'],
+                'quantity_change_grams' => -abs($data['weight_grams']),
+                'supplier_id' => $supplierId,
+                'transaction_type' => 'SALE_OUT',
+                'reference_id' => null,
+                'sorting_result_id' => $data['sorting_result_id'] ?? null,
+                'created_by' => $userId,
             ]);
         });
     }
@@ -82,15 +130,15 @@ class BarangKeluarService
 
             // Buat record utama untuk transfer
             $transfer = StockTransfer::create([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'],
-                'to_location_id'    => $data['to_location_id'],
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'],
+                'to_location_id' => $data['to_location_id'],
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
                 'sorting_result_id' => $data['sorting_result_id'] ?? null,
-                'created_by'        => $userId,
+                'created_by' => $userId,
             ]);
 
             // Buat dua transaksi inventory (OUT & IN)
@@ -113,28 +161,32 @@ class BarangKeluarService
         // Hitung total pengurangan (berat transfer + susut)
         $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
+        $supplierId = $this->getSupplierIdFromSortingResult($data['sorting_result_id'] ?? null);
+
         // TRANSFER_OUT dari lokasi asal (quantity negatif = berat + susut)
         InventoryTransaction::create([
-            'transaction_date'       => $data['transfer_date'] ?? now(),
-            'grade_company_id'       => $data['grade_company_id'],
-            'location_id'            => $data['from_location_id'],
-            'quantity_change_grams'  => -$totalDeduction,
-            'transaction_type'       => 'TRANSFER_OUT',
-            'reference_id'           => $transfer->id,
-            'sorting_result_id'      => $transfer->sorting_result_id,
-            'created_by'             => $userId,
+            'transaction_date' => $data['transfer_date'] ?? now(),
+            'grade_company_id' => $data['grade_company_id'],
+            'location_id' => $data['from_location_id'],
+            'supplier_id' => $supplierId,
+            'quantity_change_grams' => -$totalDeduction,
+            'transaction_type' => 'TRANSFER_OUT',
+            'reference_id' => $transfer->id,
+            'sorting_result_id' => $transfer->sorting_result_id,
+            'created_by' => $userId,
         ]);
 
         // TRANSFER_IN ke lokasi tujuan (quantity positif = berat bersih)
         InventoryTransaction::create([
-            'transaction_date'       => $data['transfer_date'] ?? now(),
-            'grade_company_id'       => $data['grade_company_id'],
-            'location_id'            => $data['to_location_id'],
-            'quantity_change_grams'  => abs($data['weight_grams']),
-            'transaction_type'       => 'TRANSFER_IN',
-            'reference_id'           => $transfer->id,
-            'sorting_result_id'      => $transfer->sorting_result_id,
-            'created_by'             => $userId,
+            'transaction_date' => $data['transfer_date'] ?? now(),
+            'grade_company_id' => $data['grade_company_id'],
+            'location_id' => $data['to_location_id'],
+            'supplier_id' => $supplierId,
+            'quantity_change_grams' => abs($data['weight_grams']),
+            'transaction_type' => 'TRANSFER_IN',
+            'reference_id' => $transfer->id,
+            'sorting_result_id' => $transfer->sorting_result_id,
+            'created_by' => $userId,
         ]);
     }
 
@@ -152,42 +204,46 @@ class BarangKeluarService
             $userId = Auth::id();
 
             $transfer = StockTransfer::create([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'], // Gudang Utama
-                'to_location_id'    => $data['to_location_id'],   // Jasa Cuci
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'], // Gudang Utama
+                'to_location_id' => $data['to_location_id'], // Jasa Cuci
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
                 'sorting_result_id' => $data['sorting_result_id'] ?? null,
-                'created_by'        => $userId,
+                'created_by' => $userId,
             ]);
 
             // Hitung total pengurangan (berat transfer + susut)
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
+            $supplierId = $this->getSupplierIdFromSortingResult($data['sorting_result_id'] ?? null);
+
             // 1. EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['from_location_id'], // Gudang Utama
-                'quantity_change_grams'  => -$totalDeduction,
-                'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
-                'reference_id'           => $transfer->id,
-                'sorting_result_id'      => $transfer->sorting_result_id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['from_location_id'], // Gudang Utama
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => -$totalDeduction,
+                'transaction_type' => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
             ]);
 
             // 2. EXTERNAL_TRANSFER_IN (positif) di Jasa Cuci (Lokasi Tujuan)
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'], // Jasa Cuci
-                'quantity_change_grams'  => abs($data['weight_grams']), // Hanya berat bersih yang masuk
-                'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
-                'reference_id'           => $transfer->id,
-                'sorting_result_id'      => $transfer->sorting_result_id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'], // Jasa Cuci
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']), // Hanya berat bersih yang masuk
+                'transaction_type' => 'EXTERNAL_TRANSFER_IN',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
             ]);
 
             return $transfer;
@@ -200,26 +256,29 @@ class BarangKeluarService
             $userId = Auth::id();
 
             $transfer = StockTransfer::create([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'], // IDM/DMK
-                'to_location_id'    => $data['to_location_id'],   // Gudang Utama
-                'weight_grams'      => $data['weight_grams'],
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'], // IDM/DMK
+                'to_location_id' => $data['to_location_id'], // Gudang Utama
+                'weight_grams' => $data['weight_grams'],
+                'notes' => $data['notes'] ?? null,
                 'sorting_result_id' => $data['sorting_result_id'] ?? null,
-                'created_by'        => $userId,
+                'created_by' => $userId,
             ]);
+
+            $supplierId = $this->getSupplierIdFromSortingResult($data['sorting_result_id'] ?? null);
 
             // RECEIVE_INTERNAL_IN (positif) di Gudang Utama
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'], // Gudang Utama
-                'quantity_change_grams'  => abs($data['weight_grams']),
-                'transaction_type'       => 'RECEIVE_INTERNAL_IN',
-                'reference_id'           => $transfer->id,
-                'sorting_result_id'      => $transfer->sorting_result_id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'], // Gudang Utama
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']),
+                'transaction_type' => 'RECEIVE_INTERNAL_IN',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
             ]);
 
             return $transfer;
@@ -232,27 +291,30 @@ class BarangKeluarService
             $userId = Auth::id();
 
             $transfer = StockTransfer::create([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'], // Jasa Cuci
-                'to_location_id'    => $data['to_location_id'],   // Gudang Utama
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'], // Jasa Cuci
+                'to_location_id' => $data['to_location_id'], // Gudang Utama
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
                 'sorting_result_id' => $data['sorting_result_id'] ?? null,
-                'created_by'        => $userId,
+                'created_by' => $userId,
             ]);
+
+            $supplierId = $this->getSupplierIdFromSortingResult($data['sorting_result_id'] ?? null);
 
             // 1. RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'], // Gudang Utama
-                'quantity_change_grams'  => abs($data['weight_grams']),
-                'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
-                'reference_id'           => $transfer->id,
-                'sorting_result_id'      => $transfer->sorting_result_id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'], // Gudang Utama
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']),
+                'transaction_type' => 'RECEIVE_EXTERNAL_IN',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
             ]);
 
             // 2. RECEIVE_EXTERNAL_OUT (negatif) di Jasa Cuci (Lokasi Asal)
@@ -260,14 +322,15 @@ class BarangKeluarService
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['from_location_id'], // Jasa Cuci
-                'quantity_change_grams'  => -$totalDeduction,
-                'transaction_type'       => 'RECEIVE_EXTERNAL_OUT',
-                'reference_id'           => $transfer->id,
-                'sorting_result_id'      => $transfer->sorting_result_id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['from_location_id'], // Jasa Cuci
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => -$totalDeduction,
+                'transaction_type' => 'RECEIVE_EXTERNAL_OUT',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
             ]);
 
             return $transfer;
@@ -283,9 +346,7 @@ class BarangKeluarService
      */
     public function getStockPerLocation(?int $gradeCompanyId = null, ?int $locationId = null)
     {
-        $query = InventoryTransaction::selectRaw(
-            'grade_company_id, location_id, SUM(quantity_change_grams) AS current_stock_grams'
-        );
+        $query = InventoryTransaction::selectRaw('grade_company_id, location_id, SUM(quantity_change_grams) AS current_stock_grams');
 
         // Filter by grade jika diberikan
         if ($gradeCompanyId) {
@@ -297,9 +358,10 @@ class BarangKeluarService
             $query->where('location_id', $locationId);
         }
 
-        $rows = $query->groupBy('grade_company_id', 'location_id')
-                     ->having('current_stock_grams', '>', 0) // Hanya stok > 0
-                     ->get();
+        $rows = $query
+            ->groupBy('grade_company_id', 'location_id')
+            ->having('current_stock_grams', '>', 0) // Hanya stok > 0
+            ->get();
 
         // Attach relasi grade & lokasi untuk kemudahan akses
         $rows->load(['gradeCompany', 'location']);
@@ -316,9 +378,7 @@ class BarangKeluarService
      */
     public function getAvailableStock(int $gradeCompanyId, int $locationId): float
     {
-        $stock = InventoryTransaction::where('grade_company_id', $gradeCompanyId)
-            ->where('location_id', $locationId)
-            ->sum('quantity_change_grams');
+        $stock = InventoryTransaction::where('grade_company_id', $gradeCompanyId)->where('location_id', $locationId)->sum('quantity_change_grams');
 
         return max(0, $stock); // Tidak boleh negatif
     }
@@ -344,13 +404,7 @@ class BarangKeluarService
      */
     public function getStockSummaryByGrade()
     {
-        return InventoryTransaction::selectRaw(
-            'grade_company_id, SUM(quantity_change_grams) AS total_stock_grams'
-        )
-            ->groupBy('grade_company_id')
-            ->having('total_stock_grams', '>', 0)
-            ->with('gradeCompany')
-            ->get();
+        return InventoryTransaction::selectRaw('grade_company_id, SUM(quantity_change_grams) AS total_stock_grams')->groupBy('grade_company_id')->having('total_stock_grams', '>', 0)->with('gradeCompany')->get();
     }
 
     /**
@@ -369,14 +423,14 @@ class BarangKeluarService
 
             // 2. Update data transfer
             $transfer->update([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'],
-                'to_location_id'    => $data['to_location_id'],
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
-                'updated_by'        => $userId, // Pastikan ada kolom updated_by atau abaikan jika tidak ada
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'],
+                'to_location_id' => $data['to_location_id'],
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
+                'updated_by' => $userId, // Pastikan ada kolom updated_by atau abaikan jika tidak ada
             ]);
 
             // 3. Buat transaksi inventory baru sesuai tipe
@@ -384,10 +438,10 @@ class BarangKeluarService
             // Tapi untuk simplifikasi, kita asumsikan ini dipanggil oleh controller yang tahu konteksnya.
             // Namun, struktur StockTransfer tidak menyimpan "tipe" secara eksplisit selain lewat relasi inventory.
             // Jadi lebih aman jika logic create transaction dipisah atau dipass sebagai callback/parameter.
-            
+
             // Refactor: Kita buat method update spesifik atau gunakan parameter type.
             // Untuk sekarang, mari kita buat updateTransferInternal, updateExternalTransfer, updateReceiveExternal
-            
+
             return $transfer;
         });
     }
@@ -403,13 +457,13 @@ class BarangKeluarService
 
             // 2. Update data transfer
             $transfer->update([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'],
-                'to_location_id'    => $data['to_location_id'],
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'],
+                'to_location_id' => $data['to_location_id'],
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
             ]);
 
             // 3. Buat transaksi baru (OUT & IN)
@@ -428,37 +482,42 @@ class BarangKeluarService
             $transfer->transactions()->delete();
 
             $transfer->update([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'],
-                'to_location_id'    => $data['to_location_id'],
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'],
+                'to_location_id' => $data['to_location_id'],
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
             ]);
 
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
+            $sortingResultId = $data['sorting_result_id'] ?? $transfer->sorting_result_id;
+            $supplierId = $this->getSupplierIdFromSortingResult($sortingResultId);
+
             // 1. EXTERNAL_TRANSFER_OUT (negatif) di Gudang Utama
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['from_location_id'],
-                'quantity_change_grams'  => -$totalDeduction,
-                'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
-                'reference_id'           => $transfer->id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['from_location_id'],
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => -$totalDeduction,
+                'transaction_type' => 'EXTERNAL_TRANSFER_OUT',
+                'reference_id' => $transfer->id,
+                'created_by' => $userId,
             ]);
 
             // 2. EXTERNAL_TRANSFER_IN (positif) di Jasa Cuci
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'],
-                'quantity_change_grams'  => abs($data['weight_grams']),
-                'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
-                'reference_id'           => $transfer->id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'],
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']),
+                'transaction_type' => 'EXTERNAL_TRANSFER_IN',
+                'reference_id' => $transfer->id,
+                'created_by' => $userId,
             ]);
 
             return $transfer;
@@ -474,37 +533,42 @@ class BarangKeluarService
             $transfer->transactions()->delete();
 
             $transfer->update([
-                'transfer_date'     => $data['transfer_date'] ?? now(),
-                'grade_company_id'  => $data['grade_company_id'],
-                'from_location_id'  => $data['from_location_id'],
-                'to_location_id'    => $data['to_location_id'],
-                'weight_grams'      => $data['weight_grams'],
-                'susut_grams'       => $data['susut_grams'] ?? 0,
-                'notes'             => $data['notes'] ?? null,
+                'transfer_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'from_location_id' => $data['from_location_id'],
+                'to_location_id' => $data['to_location_id'],
+                'weight_grams' => $data['weight_grams'],
+                'susut_grams' => $data['susut_grams'] ?? 0,
+                'notes' => $data['notes'] ?? null,
             ]);
+
+            $sortingResultId = $data['sorting_result_id'] ?? $transfer->sorting_result_id;
+            $supplierId = $this->getSupplierIdFromSortingResult($sortingResultId);
 
             // 1. RECEIVE_EXTERNAL_IN (positif) di Gudang Utama
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['to_location_id'],
-                'quantity_change_grams'  => abs($data['weight_grams']),
-                'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
-                'reference_id'           => $transfer->id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'],
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']),
+                'transaction_type' => 'RECEIVE_EXTERNAL_IN',
+                'reference_id' => $transfer->id,
+                'created_by' => $userId,
             ]);
 
             // 2. RECEIVE_EXTERNAL_OUT (negatif) di Jasa Cuci
             $totalDeduction = abs($data['weight_grams']) + abs($data['susut_grams'] ?? 0);
 
             InventoryTransaction::create([
-                'transaction_date'       => $data['transfer_date'] ?? now(),
-                'grade_company_id'       => $data['grade_company_id'],
-                'location_id'            => $data['from_location_id'],
-                'quantity_change_grams'  => -$totalDeduction,
-                'transaction_type'       => 'RECEIVE_EXTERNAL_OUT',
-                'reference_id'           => $transfer->id,
-                'created_by'             => $userId,
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['from_location_id'],
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => -$totalDeduction,
+                'transaction_type' => 'RECEIVE_EXTERNAL_OUT',
+                'reference_id' => $transfer->id,
+                'created_by' => $userId,
             ]);
 
             return $transfer;
@@ -518,9 +582,7 @@ class BarangKeluarService
      */
     public function getGradesByFilter(array $filters): array
     {
-        $query = \App\Models\SortingResult::query()
-            ->select('grade_company_id')
-            ->distinct();
+        $query = \App\Models\SortingResult::query()->select('grade_company_id')->distinct();
 
         // Filter by Supplier Name
         if (!empty($filters['supplier_name'])) {
@@ -561,10 +623,7 @@ class BarangKeluarService
      */
     public function getGradingSources(string $outgoingType)
     {
-        return \App\Models\SortingResult::with([
-                'gradeCompany', 
-                'receiptItem.purchaseReceipt.supplier'
-            ])
+        return \App\Models\SortingResult::with(['gradeCompany', 'receiptItem.purchaseReceipt.supplier'])
             ->where('outgoing_type', $outgoingType)
             ->orderBy('grading_date', 'desc')
             ->get();

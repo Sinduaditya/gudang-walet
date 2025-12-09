@@ -36,6 +36,7 @@ class TrackingStockController extends Controller
         $search = $request->input('search');
         $locationStocks = $this->trackingStockService->getStockPerLocation($id, $search);
 
+
         Log::info('Location Stocks:', $locationStocks->toArray());
         return view('admin.stock.detail', compact('grade', 'globalStock', 'locationStocks', 'search'));
     }

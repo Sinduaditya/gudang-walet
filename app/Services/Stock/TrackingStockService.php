@@ -31,43 +31,67 @@ class TrackingStockService
         return (int) InventoryTransaction::where('grade_company_id', $gradeId)->sum('quantity_change_grams');
     }
 
+    // public function getStockPerLocation(int $gradeId, ?string $search = null): Collection
+    // {
+    //     // Hitung stock dari inventory_transactions (akumulasi semua transaksi)
+    //     $stockPerLocation = InventoryTransaction::query()
+    //         ->select('location_id')
+    //         ->selectRaw('SUM(quantity_change_grams) as total_stock')
+    //         ->where('grade_company_id', $gradeId)
+    //         ->groupBy('location_id')
+    //         ->having('total_stock', '>', 0)
+    //         ->pluck('total_stock', 'location_id');
+
+    //     // Ambil semua lokasi yang PERNAH MENERIMA transfer untuk grade ini (dari stock_transfers)
+    //     $transferLocations = StockTransfer::query()
+    //         ->select('to_location_id')
+    //         ->distinct()
+    //         ->where('grade_company_id', $gradeId)
+    //         ->pluck('to_location_id');
+
+    //     // Gabung ID dari inventory_transactions + stock_transfers
+    //     $allLocationIds = $stockPerLocation->keys()->merge($transferLocations)->unique();
+
+    //     // Query lokasi berdasarkan ID gabungan
+    //     $locations = Location::whereIn('id', $allLocationIds)
+    //         ->when($search, function ($q) use ($search) {
+    //             $q->where('name', 'like', "%{$search}%");
+    //         })
+    //         ->orderBy('name')
+    //         ->get();
+
+    //     // Map ke object dengan stock info
+    //     return collect($locations->map(function ($location) use ($stockPerLocation) {
+    //         return (object) [
+    //             'location_id' => $location->id,
+    //             'total_stock' => floatval($stockPerLocation[$location->id] ?? 0),
+    //             'location' => $location,
+    //         ];
+    //     }));
+    // }
+
     public function getStockPerLocation(int $gradeId, ?string $search = null): Collection
     {
-        // Hitung stock dari inventory_transactions (akumulasi semua transaksi)
-        $stockPerLocation = InventoryTransaction::query()
-            ->select('location_id')
+        // Query utama: Group by Location DAN Supplier
+        $query = InventoryTransaction::query()
+            ->select('location_id', 'supplier_id') // Select supplier juga
             ->selectRaw('SUM(quantity_change_grams) as total_stock')
             ->where('grade_company_id', $gradeId)
-            ->groupBy('location_id')
-            ->having('total_stock', '>', 0)
-            ->pluck('total_stock', 'location_id');
+            ->groupBy('location_id', 'supplier_id') // Grouping ganda
+            ->having('total_stock', '>', 0);
 
-        // Ambil semua lokasi yang PERNAH MENERIMA transfer untuk grade ini (dari stock_transfers)
-        $transferLocations = StockTransfer::query()
-            ->select('to_location_id')
-            ->distinct()
-            ->where('grade_company_id', $gradeId)
-            ->pluck('to_location_id');
-
-        // Gabung ID dari inventory_transactions + stock_transfers
-        $allLocationIds = $stockPerLocation->keys()->merge($transferLocations)->unique();
-
-        // Query lokasi berdasarkan ID gabungan
-        $locations = Location::whereIn('id', $allLocationIds)
-            ->when($search, function ($q) use ($search) {
+        // Jika ada search berdasarkan nama lokasi
+        if ($search) {
+            $query->whereHas('location', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%");
-            })
-            ->orderBy('name')
-            ->get();
+            });
+        }
 
-        // Map ke object dengan stock info
-        return collect($locations->map(function ($location) use ($stockPerLocation) {
-            return (object) [
-                'location_id' => $location->id,
-                'total_stock' => floatval($stockPerLocation[$location->id] ?? 0),
-                'location' => $location,
-            ];
-        }));
+        // Eager load relasi untuk ditampilkan di View
+        // Mengembalikan Collection of InventoryTransaction objects
+        return $query->with(['location', 'supplier'])
+                     ->orderBy('location_id') // Optional sorting
+                     ->get();
     }
 
     public function getAllLocations(): Collection
