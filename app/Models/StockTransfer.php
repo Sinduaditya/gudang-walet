@@ -19,6 +19,7 @@ class StockTransfer extends Model
         'to_location_id',
         'weight_grams',
         'notes',
+        'sorting_result_id',
         'created_by'
     ];
 
@@ -51,6 +52,11 @@ class StockTransfer extends Model
     {
         return $this->hasMany(InventoryTransaction::class, 'reference_id')
             ->whereIn('transaction_type', ['TRANSFER_OUT', 'TRANSFER_IN']);
+    }
+
+    public function sortingResult()
+    {
+        return $this->belongsTo(SortingResult::class, 'sorting_result_id');
     }
 
     /**

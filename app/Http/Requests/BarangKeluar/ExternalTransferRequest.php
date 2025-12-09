@@ -14,7 +14,7 @@ class ExternalTransferRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'grade_company_id' => 'required|exists:grades_company,id',
+            'grade_company_id' => 'required|exists:sorting_results,id',
             'from_location_id' => 'required|exists:locations,id',
             'to_location_id' => 'required|exists:locations,id',
             'weight_grams' => 'required|numeric|min:0.01',

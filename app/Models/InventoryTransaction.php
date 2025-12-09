@@ -16,6 +16,7 @@ class InventoryTransaction extends Model
         'quantity_change_grams',
         'transaction_type',
         'reference_id',
+        'sorting_result_id',
         'created_by',
     ];
 
@@ -46,6 +47,14 @@ class InventoryTransaction extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relasi ke SortingResult
+     */
+    public function sortingResult()
+    {
+        return $this->belongsTo(SortingResult::class, 'sorting_result_id');
     }
 
     /**

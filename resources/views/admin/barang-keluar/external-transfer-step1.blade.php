@@ -100,6 +100,60 @@
                             @csrf
 
                             <div class="space-y-6">
+                                {{-- Grading Source Filter --}}
+                                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                        </svg>
+                                        Filter Sumber Grade
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {{-- Supplier Filter --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Nama Supplier</label>
+                                            <input type="text" name="filter_supplier" value="{{ request('filter_supplier') }}" 
+                                                class="w-full text-sm border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                                placeholder="Cari supplier...">
+                                        </div>
+
+                                        {{-- Weight Range --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Rentang Berat (Gr)</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="number" name="filter_min_weight" value="{{ request('filter_min_weight') }}" 
+                                                    class="w-full text-sm border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                                    placeholder="Min">
+                                                <span class="text-gray-400">-</span>
+                                                <input type="number" name="filter_max_weight" value="{{ request('filter_max_weight') }}" 
+                                                    class="w-full text-sm border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                                                    placeholder="Max">
+                                            </div>
+                                        </div>
+
+                                        {{-- Date Range --}}
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal Grading</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="date" name="filter_start_date" value="{{ request('filter_start_date') }}" 
+                                                    class="w-full text-sm border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                                                <span class="text-gray-400">-</span>
+                                                <input type="date" name="filter_end_date" value="{{ request('filter_end_date') }}" 
+                                                    class="w-full text-sm border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 flex justify-end gap-2">
+                                        <a href="{{ route('barang.keluar.external-transfer.step1') }}" 
+                                           class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50">
+                                            Reset Filter
+                                        </a>
+                                        <button type="submit" formmethod="GET" formaction="{{ route('barang.keluar.external-transfer.step1') }}"
+                                            class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700">
+                                            Terapkan Filter
+                                        </button>
+                                    </div>
+                                </div>
                                 {{-- Grade --}}
                                 <div>
                                     <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -113,11 +167,10 @@
                                     <select name="grade_company_id" required
                                         class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                                         <option value="">-- Pilih Grade --</option>
-                                        @foreach ($gradesWithStock as $grade)
-                                            <option value="{{ $grade['id'] }}"
-                                                {{ old('grade_company_id') == $grade['id'] ? 'selected' : '' }}>
-                                                {{ $grade['name'] }} (Stok:
-                                                {{ number_format($grade['total_stock_grams'], 0, ',', '.') }} gr)
+                                        @foreach ($gradesWithStock as $g)
+                                            <option value="{{ $g['id'] }}" data-stock="{{ $g['batch_stock_grams'] }}"
+                                                {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
+                                                {{ $g['name'] }} - {{ $g['supplier_name'] }} - {{ $g['grading_date'] }} (Batch: {{ number_format($g['batch_stock_grams'], 0, ',', '.') }} gr)
                                             </option>
                                         @endforeach
                                     </select>
@@ -347,6 +400,30 @@
                                             class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
                                     </div>
 
+                                    <div>
+                                        <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                                        <select name="supplier_id" id="supplier_id" class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+                                            <option value="">Semua Supplier</option>
+                                            @foreach($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                                    {{ $supplier->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="grade_company_id" class="block text-sm font-medium text-gray-700 mb-1">Grade</label>
+                                        <select name="grade_company_id" id="grade_company_id" class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-green-500 focus:border-green-500">
+                                            <option value="">Semua Grade</option>
+                                            @foreach($grades as $grade)
+                                                <option value="{{ $grade->id }}" {{ request('grade_company_id') == $grade->id ? 'selected' : '' }}>
+                                                    {{ $grade->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
                                     <div class="flex gap-2">
                                         <button type="submit"
                                             class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
@@ -373,6 +450,26 @@
                             </div>
                         </div>
 
+                        {{-- Summary Section --}}
+                        @if(isset($summary) && $summary->count() > 0)
+                            <div class="px-6 py-4 bg-green-50 border-b border-green-100">
+                                <h4 class="text-sm font-semibold text-green-800 mb-2">Total Stok Ditransfer per Grade (Sesuai Filter)</h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    @foreach($summary as $gradeName => $totalWeight)
+                                        <div class="bg-white p-3 rounded shadow-sm border border-green-100">
+                                            <div class="text-xs text-gray-500">{{ $gradeName }}</div>
+                                            <div class="text-lg font-bold text-green-600">
+                                                {{ number_format($totalWeight, 0, ',', '.') }} <span class="text-xs font-normal text-gray-500">gr</span>
+                                            </div>
+                                            <div class="text-xs text-gray-400">
+                                                {{ number_format($totalWeight / 1000, 2, ',', '.') }} kg
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -384,6 +481,10 @@
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             Grade
+                                        </th>
+                                        <th scope="col"
+                                            class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Supplier
                                         </th>
                                         <th scope="col"
                                             class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -411,10 +512,13 @@
                                     @forelse($transferExternalTransactions as $tx)
                                         <tr class="hover:bg-gray-50 transition-colors duration-150">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y H:i') }}
+                                                {{ \Carbon\Carbon::parse($tx->transaction_date)->format('d/m/Y') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 {{ $tx->gradeCompany->name ?? '-' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {{ $tx->sortingResult->receiptItem->purchaseReceipt->supplier->name ?? '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                 @php
@@ -734,7 +838,7 @@
             // Check if there's a page parameter (from pagination), if yes, show history tab
             document.addEventListener('DOMContentLoaded', function() {
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('page') || urlParams.has('start_date') || urlParams.has('end_date')) {
+                if (urlParams.has('page') || urlParams.has('start_date') || urlParams.has('end_date') || urlParams.has('location_id') || urlParams.has('grade_id') || urlParams.has('weight_grams')) {
                     toggleHistoryTab();
                 }
             });
