@@ -29,18 +29,23 @@ class TransferExternalController extends Controller
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        $grades = GradeCompany::orderBy('name')->get();
+        // Fetch Grading Sources for "External"
+        $gradingSources = $this->service->getGradingSources(\App\Models\SortingResult::OUTGOING_TYPE_EXTERNAL);
 
-        $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
-        
-        $gradesWithStock = $stockSummary->map(function ($stock) {
+        $gradesWithStock = $gradingSources->map(function ($source) use ($gudangUtama) {
+            // Calculate remaining stock for this specific batch
+            $batchRemaining = $this->service->getBatchRemainingStock($source->id, $gudangUtama->id);
+            
             return [
-                'id' => $stock->grade_company_id,
-                'name' => $stock->gradeCompany->name ?? 'Unknown',
-                'total_stock_grams' => $stock->current_stock_grams,
+                'id' => $source->id, // Use SortingResult ID
+                'name' => $source->gradeCompany->name ?? 'Unknown',
+                'supplier_name' => $source->receiptItem->purchaseReceipt->supplier->name ?? 'Unknown',
+                'grading_date' => $source->grading_date ? $source->grading_date->format('d M Y') : '-',
+                'batch_stock_grams' => $batchRemaining,
+                'total_stock_grams' => $batchRemaining,
             ];
-        })->filter(function ($grade) {
-            return $grade['total_stock_grams'] > 0;
+        })->filter(function ($item) {
+            return $item['batch_stock_grams'] > 0;
         });
 
         $jasaCuciLocations = Location::where('name', 'NOT LIKE', '%IDM%')
@@ -49,38 +54,50 @@ class TransferExternalController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Fetch Suppliers and Grades for filters
+        $suppliers = \App\Models\Supplier::all();
+        $grades = \App\Models\GradeCompany::all();
+
         $query = InventoryTransaction::where('transaction_type', 'EXTERNAL_TRANSFER_OUT')
-            ->with(['gradeCompany', 'location', 'stockTransfer.toLocation'])
-            ->where('location_id', $gudangUtama->id); 
+            ->with(['gradeCompany', 'location', 'stockTransfer.fromLocation', 'stockTransfer.toLocation', 'sortingResult.receiptItem.purchaseReceipt.supplier'])
+            ->orderBy('transaction_date', 'desc');
 
-        if ($request->filled('grade_id')) {
-            $query->where('grade_company_id', $request->grade_id);
-        }
-
-        if ($request->filled('location_id')) {
-            $query->whereHas('stockTransfer', function($q) use ($request) {
-                $q->where('to_location_id', $request->location_id);
-            });
-        }
-
+        // Apply Filters
         if ($request->filled('start_date')) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
         }
-
         if ($request->filled('end_date')) {
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
+        if ($request->filled('supplier_id')) {
+            $query->whereHas('sortingResult.receiptItem.purchaseReceipt', function ($q) use ($request) {
+                $q->where('supplier_id', $request->supplier_id);
+            });
+        }
+        if ($request->filled('grade_company_id')) {
+            $query->where('grade_company_id', $request->grade_company_id);
+        }
 
-        $transferExternalTransactions = $query->latest('transaction_date')
-            ->latest('id')
-            ->paginate(10);
+        // Calculate Summary (Total Weight per Grade)
+        $summaryQuery = clone $query;
+        $summary = $summaryQuery->get()
+            ->groupBy('gradeCompany.name')
+            ->map(function ($group) {
+                return $group->sum(function ($tx) {
+                    return abs($tx->quantity_change_grams);
+                });
+            });
+
+        $transferExternalTransactions = $query->paginate(10)->withQueryString();
 
         return view('admin.barang-keluar.external-transfer-step1', compact(
-            'grades',
             'gradesWithStock', 
-            'gudangUtama',
             'jasaCuciLocations', 
-            'transferExternalTransactions'
+            'transferExternalTransactions', 
+            'gudangUtama',
+            'suppliers',
+            'grades',
+            'summary'
         ));
     }
 
@@ -90,7 +107,7 @@ class TransferExternalController extends Controller
     public function storeExternalTransferStep1(Request $request)
     {
         $validated = $request->validate([
-            'grade_company_id' => 'required|exists:grades_company,id',
+            'grade_company_id' => 'required|exists:sorting_results,id', // Validate against sorting_results
             'to_location_id' => 'required|exists:locations,id',
             'weight_grams' => 'required|numeric|min:0.01',
             'susut_grams' => 'nullable|numeric|min:0',
@@ -98,6 +115,7 @@ class TransferExternalController extends Controller
             'notes' => 'nullable|string|max:500',
         ], [
             'grade_company_id.required' => 'Grade harus dipilih',
+            'grade_company_id.exists' => 'Batch tidak valid',
             'to_location_id.required' => 'Lokasi tujuan (Jasa Cuci) harus dipilih',
             'weight_grams.required' => 'Berat harus diisi',
             'weight_grams.min' => 'Berat minimal 0.01 gram',
@@ -106,24 +124,21 @@ class TransferExternalController extends Controller
         $gudangUtama = Location::where('name', 'Gudang Utama')->first();
         $validated['from_location_id'] = $gudangUtama->id;
 
+        // Resolve SortingResult
+        $sortingResult = \App\Models\SortingResult::findOrFail($validated['grade_company_id']);
+        $validated['sorting_result_id'] = $sortingResult->id;
+        // $validated['grade_company_id'] = $sortingResult->grade_company_id; // REMOVED: Keep as SortingResult ID for Step 2 and 3 validation
+
         // Calculate total weight to be deducted (transfer weight + shrinkage)
         $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
 
-        $hasEnoughStock = $this->service->hasEnoughStock(
-            $validated['grade_company_id'], 
-            $validated['from_location_id'], // Gudang Utama
-            $totalWeight
-        );
+        // Check BATCH stock
+        $batchRemaining = $this->service->getBatchRemainingStock($validated['sorting_result_id'], $validated['from_location_id']);
 
-        if (!$hasEnoughStock) {
-            $availableStock = $this->service->getAvailableStock(
-                $validated['grade_company_id'], 
-                $validated['from_location_id']
-            );
-            
+        if ($batchRemaining < $totalWeight) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Stok di Gudang Utama tidak mencukupi! Total yang dibutuhkan (Transfer + Susut): " . number_format($totalWeight, 2) . " gram. Tersedia: " . number_format($availableStock, 2) . " gram.");
+                ->with('error', "Stok batch tidak mencukupi! Dibutuhkan: " . number_format($totalWeight, 2) . " gr. Tersedia: " . number_format($batchRemaining, 2) . " gr.");
         }
 
         $request->session()->put('external_transfer_step1', $validated);
@@ -143,7 +158,10 @@ class TransferExternalController extends Controller
                 ->with('error', 'Silakan lengkapi data transfer terlebih dahulu');
         }
 
-        $grade = GradeCompany::findOrFail($step1Data['grade_company_id']);
+        // Resolve Grade from SortingResult (since ID is now SortingResult ID)
+        $sortingResult = \App\Models\SortingResult::findOrFail($step1Data['grade_company_id']);
+        $grade = $sortingResult->gradeCompany;
+        
         $fromLocation = Location::findOrFail($step1Data['from_location_id']);
         $toLocation = Location::findOrFail($step1Data['to_location_id']);
 
@@ -160,7 +178,14 @@ class TransferExternalController extends Controller
      */
     public function externalTransfer(ExternalTransferRequest $request)
     {
-        $this->service->externalTransfer($request->validated());
+        $data = $request->validated();
+
+        // Resolve SortingResult and GradeCompany
+        $sortingResult = \App\Models\SortingResult::findOrFail($data['grade_company_id']);
+        $data['sorting_result_id'] = $sortingResult->id;
+        $data['grade_company_id'] = $sortingResult->grade_company_id;
+
+        $this->service->externalTransfer($data);
 
         session()->forget('external_transfer_step1');
 

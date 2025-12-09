@@ -12,6 +12,37 @@ use Illuminate\Support\Facades\Auth;
 class BarangKeluarService
 {
     /**
+     * Get remaining stock for a specific batch (SortingResult)
+     *
+     * @param int $sortingResultId
+     * @return float
+     */
+    public function getBatchRemainingStock(int $sortingResultId, ?int $locationId = null): float
+    {
+        $initialWeight = \App\Models\SortingResult::where('id', $sortingResultId)->value('weight_grams') ?? 0;
+        
+        // If location is specified, only include initial weight if it's Gudang Utama (assuming batches start there)
+        // We can fetch Gudang Utama ID or assume it's 1, but safer to check name if possible.
+        // For performance, we might want to cache this ID, but for now query is fine.
+        if ($locationId) {
+            $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+            if ($gudangUtama && $locationId != $gudangUtama->id) {
+                $initialWeight = 0;
+            }
+        }
+
+        $query = InventoryTransaction::where('sorting_result_id', $sortingResultId);
+        
+        if ($locationId) {
+            $query->where('location_id', $locationId);
+        }
+
+        $deductions = $query->sum('quantity_change_grams');
+
+        return max(0, $initialWeight + $deductions);
+    }
+
+    /**
      * Proses penjualan langsung:
      * - Catat transaksi keluar (SALE_OUT)
      *
@@ -30,6 +61,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => -abs($data['weight_grams']),
                 'transaction_type'       => 'SALE_OUT',
                 'reference_id'           => null,
+                'sorting_result_id'      => $data['sorting_result_id'] ?? null,
                 'created_by'             => $userId,
             ]);
         });
@@ -57,6 +89,7 @@ class BarangKeluarService
                 'weight_grams'      => $data['weight_grams'],
                 'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
+                'sorting_result_id' => $data['sorting_result_id'] ?? null,
                 'created_by'        => $userId,
             ]);
 
@@ -88,6 +121,7 @@ class BarangKeluarService
             'quantity_change_grams'  => -$totalDeduction,
             'transaction_type'       => 'TRANSFER_OUT',
             'reference_id'           => $transfer->id,
+            'sorting_result_id'      => $transfer->sorting_result_id,
             'created_by'             => $userId,
         ]);
 
@@ -99,6 +133,7 @@ class BarangKeluarService
             'quantity_change_grams'  => abs($data['weight_grams']),
             'transaction_type'       => 'TRANSFER_IN',
             'reference_id'           => $transfer->id,
+            'sorting_result_id'      => $transfer->sorting_result_id,
             'created_by'             => $userId,
         ]);
     }
@@ -124,6 +159,7 @@ class BarangKeluarService
                 'weight_grams'      => $data['weight_grams'],
                 'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
+                'sorting_result_id' => $data['sorting_result_id'] ?? null,
                 'created_by'        => $userId,
             ]);
 
@@ -138,6 +174,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => -$totalDeduction,
                 'transaction_type'       => 'EXTERNAL_TRANSFER_OUT',
                 'reference_id'           => $transfer->id,
+                'sorting_result_id'      => $transfer->sorting_result_id,
                 'created_by'             => $userId,
             ]);
 
@@ -149,6 +186,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => abs($data['weight_grams']), // Hanya berat bersih yang masuk
                 'transaction_type'       => 'EXTERNAL_TRANSFER_IN',
                 'reference_id'           => $transfer->id,
+                'sorting_result_id'      => $transfer->sorting_result_id,
                 'created_by'             => $userId,
             ]);
 
@@ -168,6 +206,7 @@ class BarangKeluarService
                 'to_location_id'    => $data['to_location_id'],   // Gudang Utama
                 'weight_grams'      => $data['weight_grams'],
                 'notes'             => $data['notes'] ?? null,
+                'sorting_result_id' => $data['sorting_result_id'] ?? null,
                 'created_by'        => $userId,
             ]);
 
@@ -179,6 +218,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => abs($data['weight_grams']),
                 'transaction_type'       => 'RECEIVE_INTERNAL_IN',
                 'reference_id'           => $transfer->id,
+                'sorting_result_id'      => $transfer->sorting_result_id,
                 'created_by'             => $userId,
             ]);
 
@@ -199,6 +239,7 @@ class BarangKeluarService
                 'weight_grams'      => $data['weight_grams'],
                 'susut_grams'       => $data['susut_grams'] ?? 0,
                 'notes'             => $data['notes'] ?? null,
+                'sorting_result_id' => $data['sorting_result_id'] ?? null,
                 'created_by'        => $userId,
             ]);
 
@@ -210,6 +251,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => abs($data['weight_grams']),
                 'transaction_type'       => 'RECEIVE_EXTERNAL_IN',
                 'reference_id'           => $transfer->id,
+                'sorting_result_id'      => $transfer->sorting_result_id,
                 'created_by'             => $userId,
             ]);
 
@@ -224,6 +266,7 @@ class BarangKeluarService
                 'quantity_change_grams'  => -$totalDeduction,
                 'transaction_type'       => 'RECEIVE_EXTERNAL_OUT',
                 'reference_id'           => $transfer->id,
+                'sorting_result_id'      => $transfer->sorting_result_id,
                 'created_by'             => $userId,
             ]);
 
@@ -466,5 +509,64 @@ class BarangKeluarService
 
             return $transfer;
         });
+    }
+    /**
+     * Get Grade IDs based on Grading Source Filters (Supplier, Weight, Date)
+     *
+     * @param array $filters
+     * @return array List of GradeCompany IDs
+     */
+    public function getGradesByFilter(array $filters): array
+    {
+        $query = \App\Models\SortingResult::query()
+            ->select('grade_company_id')
+            ->distinct();
+
+        // Filter by Supplier Name
+        if (!empty($filters['supplier_name'])) {
+            $query->whereHas('receiptItem.purchaseReceipt.supplier', function ($q) use ($filters) {
+                $q->where('name', 'like', '%' . $filters['supplier_name'] . '%');
+            });
+        }
+
+        // Filter by Weight Range (Grading Result Weight)
+        if (!empty($filters['min_weight'])) {
+            $query->where('weight_grams', '>=', $filters['min_weight']);
+        }
+        if (!empty($filters['max_weight'])) {
+            $query->where('weight_grams', '<=', $filters['max_weight']);
+        }
+
+        // Filter by Grading Date
+        if (!empty($filters['start_date'])) {
+            $query->whereDate('grading_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->whereDate('grading_date', '<=', $filters['end_date']);
+        }
+
+        // Filter by Outgoing Type (Automatic Filter)
+        if (!empty($filters['outgoing_type'])) {
+            $query->where('outgoing_type', $filters['outgoing_type']);
+        }
+
+        return $query->pluck('grade_company_id')->toArray();
+    }
+
+    /**
+     * Get Grading Sources (Sorting Results) based on Outgoing Type
+     *
+     * @param string $outgoingType
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getGradingSources(string $outgoingType)
+    {
+        return \App\Models\SortingResult::with([
+                'gradeCompany', 
+                'receiptItem.purchaseReceipt.supplier'
+            ])
+            ->where('outgoing_type', $outgoingType)
+            ->orderBy('grading_date', 'desc')
+            ->get();
     }
 }

@@ -29,75 +29,117 @@ class PenjualanController extends Controller
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        $grades = GradeCompany::all();
+        // Fetch Grading Sources for "Penjualan Langsung"
+        $gradingSources = $this->service->getGradingSources(\App\Models\SortingResult::OUTGOING_TYPE_PENJUALAN_LANGSUNG);
 
-        $gradesWithStock = $grades->map(function ($grade) use ($defaultLocation) {
-            $available = (int) $this->service->getAvailableStock($grade->id, $defaultLocation->id);
+        // Map sources to view format
+        // Note: We use Batch Stock Logic here to ensure specific batch selection
+        $gradesWithStock = $gradingSources->map(function ($source) use ($defaultLocation) {
+            // Calculate remaining stock for this specific batch
+            $batchRemaining = $this->service->getBatchRemainingStock($source->id, $defaultLocation->id);
+            
             return [
-                'id' => $grade->id,
-                'name' => $grade->name ?? '',
-                'total_stock_grams' => $available,
+                'id' => $source->id, // Use SortingResult ID
+                'name' => $source->gradeCompany->name ?? 'Unknown',
+                'supplier_name' => $source->receiptItem->purchaseReceipt->supplier->name ?? 'Unknown',
+                'grading_date' => $source->grading_date ? $source->grading_date->format('d M Y') : '-',
+                'batch_stock_grams' => $batchRemaining,
+                'total_stock_grams' => $batchRemaining,
             ];
+        })->filter(function ($item) {
+            return $item['batch_stock_grams'] > 0;
         });
 
+        // Fetch Suppliers and Grades for filters
+        $suppliers = \App\Models\Supplier::all();
+        $grades = \App\Models\GradeCompany::all();
+
         $query = InventoryTransaction::where('transaction_type', 'SALE_OUT')
-            ->where('location_id', $defaultLocation->id)
-            ->with(['gradeCompany', 'location']);
+            ->with(['gradeCompany', 'location', 'sortingResult.receiptItem.purchaseReceipt.supplier'])
+            ->orderBy('transaction_date', 'desc');
 
-        if ($request->filled('grade_id')) {
-            $query->where('grade_company_id', $request->grade_id);
-        }
-
+        // Apply Filters
         if ($request->filled('start_date')) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
         }
-
         if ($request->filled('end_date')) {
             $query->whereDate('transaction_date', '<=', $request->end_date);
         }
+        if ($request->filled('supplier_id')) {
+            $query->whereHas('sortingResult.receiptItem.purchaseReceipt', function ($q) use ($request) {
+                $q->where('supplier_id', $request->supplier_id);
+            });
+        }
+        if ($request->filled('grade_company_id')) {
+            $query->where('grade_company_id', $request->grade_company_id);
+        }
 
-        $penjualanTransactions = $query->latest('transaction_date')->paginate(10);
+        // Calculate Summary (Total Weight per Grade)
+        // Clone query to avoid modifying the pagination query
+        $summaryQuery = clone $query;
+        $summary = $summaryQuery->get()
+            ->groupBy('gradeCompany.name')
+            ->map(function ($group) {
+                return $group->sum(function ($tx) {
+                    return abs($tx->quantity_change_grams);
+                });
+            });
+
+        $penjualanTransactions = $query->paginate(10)->withQueryString();
 
         return view('admin.barang-keluar.sell', compact(
-            'gradesWithStock',
+            'gradesWithStock', 
+            'penjualanTransactions', 
             'defaultLocation',
-            'penjualanTransactions'
+            'suppliers',
+            'grades',
+            'summary'
         ));
     }
 
     public function checkStock(Request $request)
     {
-        $gradeId = (int) $request->query('grade_company_id');
-        $locationId = (int) $request->query('location_id', 1);
-
-        if (!$gradeId) {
-            return response()->json(['ok' => false, 'message' => 'grade_company_id required'], 400);
+        // This is now checking BATCH stock because grade_company_id param is actually sorting_result_id
+        $sortingResultId = (int) $request->query('grade_company_id');
+        
+        if (!$sortingResultId) {
+            return response()->json(['ok' => false, 'message' => 'Batch required'], 400);
         }
 
-        $available = $this->service->getAvailableStock($gradeId, $locationId);
-        return response()->json(['ok' => true, 'available_grams' => (int)$available]);
+        $defaultLocation = Location::where('name', 'Gudang Utama')->first();
+        $locationId = $defaultLocation ? $defaultLocation->id : 1;
+
+        $available = $this->service->getBatchRemainingStock($sortingResultId, $locationId);
+        return response()->json(['ok' => true, 'available_grams' => (float)$available]);
     }
 
     /**
-     * Simpan data penjualan
+     * Store sale
      */
     public function sell(SellRequest $request)
     {
-        // Pastikan location_id adalah Gudang Utama
         $defaultLocation = Location::where('name', 'Gudang Utama')->first();
         
         $data = $request->validated();
+        
+        // Resolve SortingResult and GradeCompany
+        $sortingResult = \App\Models\SortingResult::findOrFail($data['grade_company_id']);
+        $data['sorting_result_id'] = $sortingResult->id;
+        $data['grade_company_id'] = $sortingResult->grade_company_id;
         $data['location_id'] = $defaultLocation->id;
-        if (!$this->service->hasEnoughStock($data['grade_company_id'], $data['location_id'], $data['weight_grams'])) {
+
+        // Check BATCH stock
+        $batchRemaining = $this->service->getBatchRemainingStock($data['sorting_result_id'], $data['location_id']);
+        
+        if ($batchRemaining < $data['weight_grams']) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Stok tidak mencukupi. Gunakan tombol "Cek Stok" untuk melihat sisa stok.');
+                ->with('error', 'Stok batch tidak mencukupi. Tersedia: ' . $batchRemaining . ' gr.');
         }
 
         $this->service->sell($data);
 
-        return redirect()
-            ->route('barang.keluar.sell.form')
+        return redirect()->route('barang.keluar.sell.form')
             ->with('success', 'Penjualan berhasil dicatat dan stok diperbarui.');
     }
 

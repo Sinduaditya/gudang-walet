@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\GradeCompany;
 use App\Services\BarangKeluar\BarangKeluarService;
 use App\Http\Requests\BarangKeluar\TransferRequest;
+use App\Models\StockTransfer;
 use Illuminate\Http\Request;
 
 class TransferInternalController extends Controller
@@ -29,56 +30,74 @@ class TransferInternalController extends Controller
             return redirect()->back()->with('error', 'Lokasi "Gudang Utama" tidak ditemukan.');
         }
 
-        $stockSummary = $this->service->getStockPerLocation(null, $gudangUtama->id);
+        // Fetch Grading Sources for "Internal"
+        $gradingSources = $this->service->getGradingSources(\App\Models\SortingResult::OUTGOING_TYPE_INTERNAL);
 
-        $gradesWithStock = $stockSummary->map(function ($stock) {
+        $gradesWithStock = $gradingSources->map(function ($source) use ($gudangUtama) {
+            // Calculate remaining stock for this specific batch
+            $batchRemaining = $this->service->getBatchRemainingStock($source->id, $gudangUtama->id);
+            
             return [
-                'id' => $stock->grade_company_id,
-                'name' => $stock->gradeCompany->name ?? 'Unknown',
-                'total_stock_grams' => $stock->current_stock_grams,
+                'id' => $source->id, // Use SortingResult ID
+                'name' => $source->gradeCompany->name ?? 'Unknown',
+                'supplier_name' => $source->receiptItem->purchaseReceipt->supplier->name ?? 'Unknown',
+                'grading_date' => $source->grading_date ? $source->grading_date->format('d M Y') : '-',
+                'batch_stock_grams' => $batchRemaining,
+                'total_stock_grams' => $batchRemaining,
             ];
-        })->filter(function ($grade) {
-            return $grade['total_stock_grams'] > 0;
+        })->filter(function ($item) {
+            return $item['batch_stock_grams'] > 0;
         });
 
         $locations = Location::where('name', 'LIKE', '%IDM%')
             ->orWhere('name', 'LIKE', '%DMK%')
             ->get();
 
-        $query = \App\Models\StockTransfer::with([
-            'gradeCompany',
-            'fromLocation',
-            'toLocation',
-        ])->whereHas('toLocation', function($q) {
-            $q->where('name', 'LIKE', '%IDM%')
-              ->orWhere('name', 'LIKE', '%DMK%');
-        });
+        // Fetch Suppliers and Grades for filters
+        $suppliers = \App\Models\Supplier::all();
+        $grades = \App\Models\GradeCompany::all();
 
-        if ($request->filled('grade_id')) {
-            $query->where('grade_company_id', $request->grade_id);
-        }
+        // History Transactions (Internal Transfer Out)
+        $query = StockTransfer::whereHas('transactions', function ($q) {
+                $q->where('transaction_type', 'TRANSFER_OUT');
+            })
+            ->with(['gradeCompany', 'fromLocation', 'toLocation', 'sortingResult.receiptItem.purchaseReceipt.supplier'])
+            ->orderBy('transfer_date', 'desc');
 
-        if ($request->filled('location_id')) {
-            $query->where('to_location_id', $request->location_id);
-        }
-
+        // Apply Filters
         if ($request->filled('start_date')) {
             $query->whereDate('transfer_date', '>=', $request->start_date);
         }
-
         if ($request->filled('end_date')) {
             $query->whereDate('transfer_date', '<=', $request->end_date);
         }
+        if ($request->filled('supplier_id')) {
+            $query->whereHas('sortingResult.receiptItem.purchaseReceipt', function ($q) use ($request) {
+                $q->where('supplier_id', $request->supplier_id);
+            });
+        }
+        if ($request->filled('grade_company_id')) {
+            $query->where('grade_company_id', $request->grade_company_id);
+        }
 
-        $transferInternalTransactions = $query->latest('transfer_date')
-            ->latest('id')
-            ->paginate(10);
+        // Calculate Summary (Total Weight per Grade)
+        $summaryQuery = clone $query;
+        $summary = $summaryQuery->get()
+            ->groupBy('gradeCompany.name')
+            ->map(function ($group) {
+                return $group->sum('weight_grams');
+            });
+
+        $transferInternalTransactions = $query->paginate(10)->withQueryString();
 
         return view('admin.barang-keluar.transfer-step1', compact(
-            'gradesWithStock',
+            'gradesWithStock', 
+            'locations', 
+            'transferInternalTransactions', 
             'gudangUtama',
-            'locations',
-            'transferInternalTransactions'
+            'suppliers',
+            'grades',
+            'summary'
         ));
     }
 
@@ -88,7 +107,7 @@ class TransferInternalController extends Controller
     public function storeTransferStep1(Request $request)
     {
         $validated = $request->validate([
-            'grade_company_id' => 'required|exists:grades_company,id',
+            'grade_company_id' => 'required|exists:sorting_results,id', // Validate against sorting_results
             'from_location_id' => 'required|exists:locations,id',
             'to_location_id' => 'required|exists:locations,id|different:from_location_id',
             'weight_grams' => 'required|numeric|min:0.01',
@@ -97,7 +116,7 @@ class TransferInternalController extends Controller
             'notes' => 'nullable|string|max:500',
         ], [
             'grade_company_id.required' => 'Grade harus dipilih',
-            'grade_company_id.exists' => 'Grade tidak valid',
+            'grade_company_id.exists' => 'Batch tidak valid',
             'from_location_id.required' => 'Lokasi asal harus dipilih',
             'from_location_id.exists' => 'Lokasi asal tidak valid',
             'to_location_id.required' => 'Lokasi tujuan harus dipilih',
@@ -117,24 +136,21 @@ class TransferInternalController extends Controller
             $validated['from_location_id'] = $gudangUtama->id;
         }
 
+        // Resolve SortingResult
+        $sortingResult = \App\Models\SortingResult::findOrFail($validated['grade_company_id']);
+        $validated['sorting_result_id'] = $sortingResult->id;
+        // $validated['grade_company_id'] = $sortingResult->grade_company_id; // REMOVED: Keep as SortingResult ID for Step 2 and 3 validation
+
         // Calculate total weight to be deducted (transfer weight + shrinkage)
         $totalWeight = $validated['weight_grams'] + ($validated['susut_grams'] ?? 0);
 
-        $hasEnoughStock = $this->service->hasEnoughStock(
-            $validated['grade_company_id'],
-            $validated['from_location_id'],
-            $totalWeight
-        );
+        // Check BATCH stock
+        $batchRemaining = $this->service->getBatchRemainingStock($validated['sorting_result_id'], $validated['from_location_id']);
 
-        if (!$hasEnoughStock) {
-            $availableStock = $this->service->getAvailableStock(
-                $validated['grade_company_id'],
-                $validated['from_location_id']
-            );
-
+        if ($batchRemaining < $totalWeight) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', "Stok tidak mencukupi! Total yang dibutuhkan (Transfer + Susut): " . number_format($totalWeight, 2) . " gram. Tersedia: " . number_format($availableStock, 2) . " gram.");
+                ->with('error', "Stok batch tidak mencukupi! Dibutuhkan: " . number_format($totalWeight, 2) . " gr. Tersedia: " . number_format($batchRemaining, 2) . " gr.");
         }
 
         // Store in session
@@ -157,7 +173,10 @@ class TransferInternalController extends Controller
         }
 
         // Get related models for display
-        $grade = GradeCompany::findOrFail($step1Data['grade_company_id']);
+        // Resolve Grade from SortingResult (since ID is now SortingResult ID)
+        $sortingResult = \App\Models\SortingResult::findOrFail($step1Data['grade_company_id']);
+        $grade = $sortingResult->gradeCompany;
+        
         $fromLocation = Location::findOrFail($step1Data['from_location_id']);
         $toLocation = Location::findOrFail($step1Data['to_location_id']);
 
@@ -174,7 +193,14 @@ class TransferInternalController extends Controller
      */
     public function transfer(TransferRequest $request)
     {
-        $this->service->transfer($request->validated());
+        $data = $request->validated();
+
+        // Resolve SortingResult and GradeCompany
+        $sortingResult = \App\Models\SortingResult::findOrFail($data['grade_company_id']);
+        $data['sorting_result_id'] = $sortingResult->id;
+        $data['grade_company_id'] = $sortingResult->grade_company_id;
+
+        $this->service->transfer($data);
 
         // Clear session after successful transfer
         session()->forget('transfer_step1');
@@ -186,19 +212,17 @@ class TransferInternalController extends Controller
 
     public function checkStock(Request $request)
     {
-        $gradeId = (int) $request->query('grade_company_id');
-        $locationId = (int) $request->query('location_id');
-
-        if (!$gradeId || !$locationId) {
-            return response()->json(['ok' => false, 'message' => 'grade_company_id dan location_id required'], 400);
+        $sortingResultId = (int) $request->query('grade_company_id');
+        
+        if (!$sortingResultId) {
+            return response()->json(['ok' => false, 'message' => 'Batch required'], 400);
         }
 
-        $available = $this->service->getAvailableStock($gradeId, $locationId);
+        $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+        $locationId = $gudangUtama ? $gudangUtama->id : 1;
 
-        return response()->json([
-            'ok' => true,
-            'available_grams' => $available
-        ]);
+        $available = $this->service->getBatchRemainingStock($sortingResultId, $locationId);
+        return response()->json(['ok' => true, 'available_grams' => (float)$available]);
     }
 
     public function edit($id)
