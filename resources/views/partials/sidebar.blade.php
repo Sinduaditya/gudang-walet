@@ -13,16 +13,18 @@
     <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
 
         @php
-            // Helper untuk active state
-            $isDashboard = request()->routeIs('dashboard');
-            $isBarangMasuk = request()->routeIs('incoming-goods.*');
-            $isGrading = request()->routeIs('grading-goods.*');
-            $isBarangKeluar = request()->routeIs('barang.keluar.*');
-            $isTrackingStock = request()->routeIs('tracking-stock.*');
-            $isMasterGradeCompany = request()->routeIs('grade-company.*');
-            $isMasterSupplier = request()->routeIs('suppliers.*');
-            $isMasterGradeSupplier = request()->routeIs('grade-supplier.*');
-            $isMasterLokasi = request()->routeIs('locations.*');
+        // Helper untuk active state
+        $isDashboard = request()->routeIs('dashboard');
+        $isBarangMasuk = request()->routeIs('incoming-goods.*');
+        $isGrading = request()->routeIs('grading-goods.*');
+        $isManajemenIdm = request()->routeIs('manajemen-idm.*');
+        $isTransferIdm = request()->routeIs('transfer-idm.*');
+        $isBarangKeluar = request()->routeIs('barang.keluar.*');
+        $isTrackingStock = request()->routeIs('tracking-stock.*');
+        $isMasterGradeCompany = request()->routeIs('grade-company.*');
+        $isMasterSupplier = request()->routeIs('suppliers.*');
+        $isMasterGradeSupplier = request()->routeIs('grade-supplier.*');
+        $isMasterLokasi = request()->routeIs('locations.*');
         @endphp
 
         <a href="{{ route('dashboard') }}"
@@ -59,6 +61,18 @@
             <span class="font-medium">Manajemen Grading</span>
         </a>
 
+        <a href="{{ route('manajemen-idm.index') }}"
+            class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
+            {{ $isManajemenIdm ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
+            <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z">
+                </path>
+            </svg>
+            <span class="font-medium">Manajemen IDM</span>
+        </a>
+
+
         <a href="{{ route('barang.keluar.index') }}"
             class="flex items-center px-4 py-3 rounded-lg transition-all duration-200 group
             {{ $isBarangKeluar ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
@@ -74,7 +88,7 @@
             {{ $isTrackingStock ? 'bg-blue-50 text-blue-600 font-semibold shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800' }}">
             <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
             <span class="font-medium">Tracking Stok</span>
         </a>
@@ -162,13 +176,13 @@
 </div>
 
 @push('scripts')
-    <script>
-        function toggleSubmenu(submenuId, arrowId) {
-            const submenu = document.getElementById(submenuId);
-            const arrow = document.getElementById(arrowId);
+<script>
+    function toggleSubmenu(submenuId, arrowId) {
+        const submenu = document.getElementById(submenuId);
+        const arrow = document.getElementById(arrowId);
 
-            submenu.classList.toggle('hidden');
-            arrow.classList.toggle('rotate-90');
-        }
-    </script>
+        submenu.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
+</script>
 @endpush
