@@ -150,7 +150,7 @@
                 </a>
 
                 {{-- Card 6: Transfer IDM --}}
-                <a href="{{ route('barang.keluar.transfer-idm.step1') }}"
+                <a href="{{ route('barang.keluar.transfer-idm.index') }}"
                     class="group bg-white rounded-xl shadow-md p-8 border-2 border-transparent hover:border-blue-500 hover:shadow-xl transition-all duration-300">
                     <div class="flex items-center mb-4">
                         <div

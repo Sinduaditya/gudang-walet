@@ -101,10 +101,11 @@
 
                             <div class="space-y-6">
 
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {{-- Supplier Filter for Grade --}}
                                 <div>
                                     <label class="block font-semibold text-gray-700 mb-2">
-                                        Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional, untuk filter grade)</span>
+                                        Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                     </label>
                                     <select id="filter_supplier_id" 
                                         class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent">
@@ -141,6 +142,7 @@
                                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
+                            </div>
 
                                 {{-- Locations --}}
                                 <div class="relative">
@@ -842,7 +844,19 @@
                 // Get values
                 const gradeSelect = document.querySelector('select[name="grade_company_id"]');
                 // Handle case where gradeSelect might not have a selected option if empty
-                const gradeName = gradeSelect.selectedIndex >= 0 ? gradeSelect.options[gradeSelect.selectedIndex].text : '-';
+                const selectedOption = gradeSelect.selectedIndex >= 0 ? gradeSelect.options[gradeSelect.selectedIndex] : null;
+                const gradeName = selectedOption ? selectedOption.text : '-';
+                const availableStock = selectedOption ? parseFloat(selectedOption.dataset.stock || 0) : 0;
+
+                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+                const susut = parseFloat(document.getElementById('susut_grams').value || 0);
+                const totalNeeded = weight + susut;
+
+                if (totalNeeded > availableStock) {
+                    showStockResult(`Stok tidak mencukupi! Tersedia: ${new Intl.NumberFormat('id-ID').format(availableStock)} gr. Dibutuhkan: ${new Intl.NumberFormat('id-ID').format(totalNeeded)} gr.`, 'error');
+                    document.getElementById('stock-check-result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
 
                 const fromLocation = "Gudang Utama"; // Fixed
 
@@ -851,8 +865,6 @@
                 const toLocation = toSelect && toSelect.selectedIndex >= 0 ? toSelect.options[toSelect.selectedIndex].text :
                 '-';
 
-                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
-                const susut = parseFloat(document.getElementById('susut_grams').value || 0);
                 const notes = document.querySelector('textarea[name="notes"]').value;
 
                 // Populate modal

@@ -186,6 +186,14 @@ class TransferExternalController extends Controller
         $data['sorting_result_id'] = $sortingResult->id;
         $data['grade_company_id'] = $sortingResult->grade_company_id;
 
+        // Check BATCH stock (Server-side Validation)
+        $totalWeight = $data['weight_grams'] + ($data['susut_grams'] ?? 0);
+        $batchRemaining = $this->service->getBatchRemainingStock($data['sorting_result_id'], $data['from_location_id']);
+
+        if ($batchRemaining < $totalWeight) {
+             return back()->with('error', "Stok batch tidak mencukupi! Dibutuhkan: " . number_format($totalWeight, 2) . " gr. Tersedia: " . number_format($batchRemaining, 2) . " gr.");
+        }
+
         $this->service->externalTransfer($data);
 
         session()->forget('external_transfer_step1');

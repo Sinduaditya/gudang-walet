@@ -100,55 +100,49 @@
 
                             <div class="space-y-6">
 
-                                {{-- Supplier Filter for Grade --}}
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2">
-                                        Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional, untuk filter grade)</span>
-                                    </label>
-                                    <select id="filter_supplier_id" 
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                        <option value="">-- Semua Supplier --</option>
-                                        @foreach($suppliers as $s)
-                                            <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {{-- Supplier Filter for Grade --}}
+                                    <div>
+                                        <label class="block font-semibold text-gray-700 mb-2">
+                                            Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                        </label>
+                                        <select id="filter_supplier_id" 
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                            <option value="">-- Semua Supplier --</option>
+                                            @foreach($suppliers as $s)
+                                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    {{-- Grade Select --}}
+                                    <div>
+                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                            </svg>
+                                            Grade Perusahaan <span class="text-red-500">*</span>
+                                        </label>
+
+                                        <select name="grade_company_id" id="grade_company_id" required
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                                            <option value="">-- Pilih Grade --</option>
+                                            @foreach ($gradesWithStock as $g)
+                                                <option value="{{ $g['id'] }}" 
+                                                    data-stock="{{ $g['batch_stock_grams'] }}"
+                                                    data-supplier-id="{{ $g['supplier_id'] }}"
+                                                    {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
+                                                    {{ $g['name'] }} - {{ $g['supplier_name'] }} - {{ $g['grading_date'] }} (Batch: {{ number_format($g['batch_stock_grams'], 0, ',', '.') }} gr)
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('grade_company_id')
+                                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
                                 </div>
-
-                                {{-- Grade Select (changed to show stock like sell form) --}}
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                        </svg>
-                                        Grade Perusahaan <span class="text-red-500">*</span>
-                                    </label>
-
-                                    <select name="grade_company_id" id="grade_company_id" required
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
-                                        <option value="">-- Pilih Grade --</option>
-                                        @foreach ($gradesWithStock as $g)
-                                            <option value="{{ $g['id'] }}" 
-                                                data-stock="{{ $g['batch_stock_grams'] }}"
-                                                data-supplier-id="{{ $g['supplier_id'] }}"
-                                                {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
-                                                {{ $g['name'] }} - {{ $g['supplier_name'] }} - {{ $g['grading_date'] }} (Batch: {{ number_format($g['batch_stock_grams'], 0, ',', '.') }} gr)
-                                            </option>
-                                        @endforeach
-                                    </select>
-
-                                    {{-- Stock hint --}}
-                                    <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
-                                        Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
-                                    </p>
-
-                                    @error('grade_company_id')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-
-                                {{-- Locations --}}
                                 <div class="relative">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
@@ -156,27 +150,17 @@
                                                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                                                 </svg>
                                                 Lokasi Asal <span class="text-red-500">*</span>
                                             </label>
 
-                                            <input type="hidden" name="from_location_id"
-                                                value="{{ $gudangUtama->id ?? '' }}">
-
                                             <div
-                                                class="w-full border-2 border-gray-300 bg-gray-50 rounded-lg p-3 text-gray-700 flex items-center">
-                                                <svg class="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                                </svg>
-                                                <span
-                                                    class="font-semibold">{{ $gudangUtama->name ?? 'Gudang Utama' }}</span>
+                                                class="w-full border border-gray-200 bg-blue-50 rounded-lg p-3 text-blue-800 font-medium">
+                                                {{ $gudangUtama->name ?? 'Gudang Utama' }}
                                             </div>
-                                            <p class="mt-1.5 text-xs text-gray-500">
+
+                                            <p class="mt-1.5 text-xs text-blue-600">
                                                 <svg class="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd"
                                                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -275,23 +259,23 @@
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            Tanggal Transfer
-                                            <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
-                                        </label>
-                                        <input type="date" name="transfer_date"
-                                            value="{{ old('transfer_date', date('Y-m-d')) }}"
-                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
-                                        @error('transfer_date')
-                                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                                {{-- Tanggal Transfer (Lebar Penuh) --}}
+                                <div>
+                                    <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        Tanggal Transfer
+                                        <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                    </label>
+                                    <input type="date" name="transfer_date"
+                                        value="{{ old('transfer_date', date('Y-m-d')) }}"
+                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                                    @error('transfer_date')
+                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
                                 </div>
                                 <div>
                                     <label class="block font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -538,7 +522,7 @@
                                                             stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round"
                                                                 stroke-width="2"
-                                                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                                                         </svg>
                                                     </div>
                                                     <p class="text-gray-500 font-medium">Belum ada daftar transfer internal
@@ -841,12 +825,23 @@
 
                 // Get values
                 const gradeSelect = document.getElementById('grade_company_id');
-                const gradeName = gradeSelect.options[gradeSelect.selectedIndex].text;
+                const selectedOption = gradeSelect.options[gradeSelect.selectedIndex];
+                const availableStock = parseFloat(selectedOption.dataset.stock || 0);
+
+                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
+                const susut = parseFloat(document.getElementById('susut_grams').value || 0);
+                const totalNeeded = weight + susut;
+
+                if (totalNeeded > availableStock) {
+                    showStockResult(`Stok tidak mencukupi! Tersedia: ${new Intl.NumberFormat('id-ID').format(availableStock)} gr. Dibutuhkan: ${new Intl.NumberFormat('id-ID').format(totalNeeded)} gr.`, 'error');
+                    document.getElementById('stock-check-result').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                const gradeName = selectedOption.text;
                 const fromLocation = "Gudang Utama"; // Fixed as per controller
                 const toSelect = document.querySelector('select[name="to_location_id"]');
                 const toLocation = toSelect.options[toSelect.selectedIndex].text;
-                const weight = parseFloat(document.getElementById('weight_grams').value || 0);
-                const susut = parseFloat(document.getElementById('susut_grams').value || 0);
                 const notes = document.querySelector('textarea[name="notes"]').value;
 
                 // Populate modal
