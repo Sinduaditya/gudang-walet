@@ -52,47 +52,49 @@
 
                             <div class="space-y-6">
 
-                                {{-- Supplier Filter for Grade --}}
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2">
-                                        Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional, untuk filter grade)</span>
-                                    </label>
-                                    <select id="filter_supplier_id" 
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option value="">-- Semua Supplier --</option>
-                                        @foreach($suppliers as $s)
-                                            <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {{-- Supplier Filter for Grade --}}
+                                    <div>
+                                        <label class="block font-semibold text-gray-700 mb-2">
+                                            Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                        </label>
+                                        <select id="filter_supplier_id" 
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="">-- Semua Supplier --</option>
+                                            @foreach($suppliers as $s)
+                                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
 
-                                {{-- Grade Select (changed from searchable to select) --}}
-                                <div>
-                                    <label class="block font-semibold text-gray-700 mb-2">
-                                        Grade Perusahaan <span class="text-red-500">*</span>
-                                    </label>
+                                    {{-- Grade Select --}}
+                                    <div>
+                                        <label class="block font-semibold text-gray-700 mb-2">
+                                            Grade Perusahaan <span class="text-red-500">*</span>
+                                        </label>
 
-                                    <select name="grade_company_id" id="grade_company_id" required
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                        <option value="">-- Pilih Grade --</option>
-                                        @foreach($gradesWithStock as $g)
-                                            <option value="{{ $g['id'] }}" 
-                                                data-stock="{{ $g['batch_stock_grams'] }}"
-                                                data-supplier-id="{{ $g['supplier_id'] }}"
-                                                {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
-                                                {{ $g['name'] }} - {{ $g['supplier_name'] }} - {{ $g['grading_date'] }} (Batch: {{ number_format($g['batch_stock_grams'], 0, ',', '.') }} gr)
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                        <select name="grade_company_id" id="grade_company_id" required
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            <option value="">-- Pilih Grade --</option>
+                                            @foreach($gradesWithStock as $g)
+                                                <option value="{{ $g['id'] }}" 
+                                                    data-stock="{{ $g['batch_stock_grams'] }}"
+                                                    data-supplier-id="{{ $g['supplier_id'] }}"
+                                                    {{ old('grade_company_id') == $g['id'] ? 'selected' : '' }}>
+                                                    {{ $g['name'] }} - {{ $g['supplier_name'] }} - {{ $g['grading_date'] }} (Batch: {{ number_format($g['batch_stock_grams'], 0, ',', '.') }} gr)
+                                                </option>
+                                            @endforeach
+                                        </select>
 
-                                    {{-- Stock hint --}}
-                                    <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
-                                        Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
-                                    </p>
+                                        {{-- Stock hint --}}
+                                        <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
+                                            Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
+                                        </p>
 
-                                    @error('grade_company_id')
-                                        <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
+                                        @error('grade_company_id')
+                                            <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
                                 </div>
 
                                 {{-- Hidden Location (default Gudang Utama) --}}
