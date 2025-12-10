@@ -57,7 +57,7 @@
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 @error('password') border-red-500 focus:ring-red-500 @enderror"
                                 placeholder="Masukkan password Anda" />
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <button type="button" onclick="togglePassword()"
+                                <button type="button" onclick="togglePasswordVisibility()"
                                     class="text-gray-400 hover:text-gray-600 focus:outline-none">
                                     <svg id="eye-open" class="h-5 w-5" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
@@ -85,6 +85,26 @@
                             </p>
                         @enderror
                     </div>
+
+                    @push('scripts')
+                        <script>
+                            function togglePasswordVisibility() {
+                                const passwordInput = document.getElementById('password');
+                                const eyeOpenIcon = document.getElementById('eye-open');
+                                const eyeClosedIcon = document.getElementById('eye-closed');
+
+                                if (passwordInput.type === 'password') {
+                                    passwordInput.type = 'text';
+                                    eyeOpenIcon.classList.add('hidden');
+                                    eyeClosedIcon.classList.remove('hidden');
+                                } else {
+                                    passwordInput.type = 'password';
+                                    eyeOpenIcon.classList.remove('hidden');
+                                    eyeClosedIcon.classList.add('hidden');
+                                }
+                            }
+                        </script>
+                    @endpush
 
                     <!-- Options -->
                     <div class="flex items-center justify-between">
