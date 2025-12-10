@@ -18,6 +18,8 @@ use App\Http\Controllers\Feature\TrackingStockController;
 use App\Http\Controllers\Feature\ReceiveExternalController;
 use App\Http\Controllers\Feature\ReceiveInternalController;
 use App\Http\Controllers\Feature\TransferExternalController;
+use App\Http\Controllers\Feature\ManajemenIdmController;
+use App\Http\Controllers\Feature\TransferIdmController;
 use App\Http\Controllers\Feature\TransferInternalController;
 
 // Authentication Routes
@@ -154,6 +156,20 @@ Route::middleware(['auth'])->group(function () {
                         Route::put('/{id}', [ReceiveExternalController::class, 'update'])->name('update');
                         Route::delete('/{id}', [ReceiveExternalController::class, 'destroy'])->name('destroy');
                     });
+
+                Route::prefix('transfer-idm')
+                    ->name('transfer-idm.')
+                    ->group(function () {
+                        Route::get('/index', [TransferIdmController::class, 'index'])->name('index');
+                    });
+            });
+
+
+
+        Route::prefix('manajemen-idm')
+            ->name('manajemen-idm.')
+            ->group(function () {
+                Route::get('/index', [ManajemenIdmController::class, 'index'])->name('index');
             });
 
 
