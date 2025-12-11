@@ -73,7 +73,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Left Column: Inputs -->
                         <div class="lg:col-span-2 space-y-6">
-                            
+
                             <!-- Berat & Harga Awal -->
                             <div class="border border-gray-200 rounded-lg p-4">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
@@ -149,12 +149,21 @@
                                 </div>
                             </div>
 
+                             <!-- Keuntungan -->
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center pt-4 border-t border-gray-100">
+                                <label class="block text-sm font-bold text-gray-900">Keuntungan</label>
+                                <div>
+                                    <input type="text" id="profit_display" readonly
+                                        class="block w-full rounded-md border-gray-300 bg-green-50 shadow-sm font-bold text-green-600 sm:text-sm">
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Right Column: Summary -->
                         <div class="bg-gray-50 rounded-xl p-6 h-fit border border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Ringkasan</h3>
-                            
+
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-500">Kekurangan</label>
@@ -167,9 +176,12 @@
                                 </div>
 
                                 <div class="pt-4 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM</label>
+                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM per Gram</label>
                                     <input type="hidden" name="estimated_selling_price" id="estimated_selling_price">
                                     <div class="mt-1 text-2xl font-bold text-green-600" id="estimated_price_display">Rp 0</div>
+                                    <button type="button" onclick="useRecommendedPrice()" class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none">
+                                        Gunakan Harga Rekomendasi
+                                    </button>
                                 </div>
                             </div>
 
@@ -269,16 +281,16 @@
             function calculate() {
                 const totalWeight = parseFloat(totalWeightInput.value) || 0;
                 const initialPrice = parseFloat(initialPriceInput.value) || 0;
-                
+
                 // Update Initial Total
                 document.getElementById('total_initial').value = formatCurrency(totalWeight * initialPrice);
-                
+
                 const wPerut = parseFloat(document.getElementById('weight_perutan').value) || 0;
                 const pPerut = parseFloat(document.getElementById('price_perutan').value) || 0;
-                
+
                 const wKakian = parseFloat(document.getElementById('weight_kakian').value) || 0;
                 const pKakian = parseFloat(document.getElementById('price_kakian').value) || 0;
-                
+
                 const wIdm = parseFloat(document.getElementById('weight_idm').value) || 0;
                 const pIdm = parseFloat(document.getElementById('price_idm').value) || 0;
 
@@ -302,23 +314,44 @@
                 // Shortage = Total Initial Cost - Total Selling Price
                 const totalInitialCost = totalWeight * initialPrice;
                 const shortage = Math.max(0, totalInitialCost - totalSellingPrice);
-                
-                shortageDisplay.textContent = formatCurrency(shortage); 
-                
+
+                shortageDisplay.textContent = formatCurrency(shortage);
+
+                // Calculate Profit (Keuntungan)
+                // Profit = Total Selling Price - Total Initial Cost
+                const profit = Math.max(0, totalSellingPrice - totalInitialCost);
+                document.getElementById('profit_display').value = formatCurrency(profit);
+
                 // Calculate Recommendation (Kenaikan Harga)
                 // Formula: (Kekurangan) / Berat IDM
                 let recommendation = 0;
                 if (wIdm > 0) {
                     recommendation = shortage / wIdm;
                 }
-                // Display x 1000 (likely per Kg)
-                recommendationDisplay.textContent = formatCurrency(recommendation * 1000);
+                // Display per Gram
+                recommendationDisplay.textContent = formatCurrency(recommendation);
 
-                // Calculate Estimated IDM Selling Price
-                // Formula: (Harga Jual IDM + Kenaikan Harga) * 1000
-                const estimatedIdmPrice = (pIdm + recommendation) * 1000;
+                // Calculate Estimated IDM Selling Price (Break Even Price)
+                // Formula: (Total Cost - (Perut Sales + Kaki Sales)) / IDM Weight
+                let estimatedIdmPrice = 0;
+                if (wIdm > 0) {
+                    const otherSales = (wPerut * pPerut) + (wKakian * pKakian);
+                    estimatedIdmPrice = (totalInitialCost - otherSales) / wIdm;
+                }
+
+                // Ensure estimated price is not negative
+                estimatedIdmPrice = Math.max(0, estimatedIdmPrice);
+
                 estimatedPriceInput.value = estimatedIdmPrice;
                 estimatedPriceDisplay.textContent = formatCurrency(estimatedIdmPrice);
+            }
+
+            window.useRecommendedPrice = function() {
+                const estimatedPrice = parseFloat(estimatedPriceInput.value) || 0;
+                if (estimatedPrice > 0) {
+                    document.getElementById('price_idm').value = Math.ceil(estimatedPrice); // Round up to nearest integer
+                    calculate(); // Recalculate to update totals and shortage
+                }
             }
 
             inputs.forEach(input => {
