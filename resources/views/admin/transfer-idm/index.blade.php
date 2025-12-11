@@ -121,7 +121,7 @@
                                            class="text-blue-600 hover:text-blue-800 font-medium">Detail</a>
                                         <a href="{{ route('barang.keluar.transfer-idm.edit', $transfer->id) }}"
                                            class="text-yellow-600 hover:text-yellow-800 font-medium">Edit</a>
-                                        <button onclick="confirmDelete({{ $transfer->id }})"
+                                        <button onclick="confirmDelete('{{ route('barang.keluar.transfer-idm.destroy', $transfer->id) }}')"
                                             class="text-red-600 hover:text-red-800 font-medium">Hapus</button>
                                     </div>
                                 </td>
@@ -169,11 +169,10 @@
 
     @push('scripts')
         <script>
-            function confirmDelete(id) {
+            function confirmDelete(url) {
                 const modal = document.getElementById('deleteModal');
                 const form = document.getElementById('deleteForm');
-                // Correct route for Transfer IDM destroy
-                form.action = `{{ route('barang.keluar.transfer-idm.index') }}/${id}`; 
+                form.action = url; 
                 modal.classList.remove('hidden');
             }
 
