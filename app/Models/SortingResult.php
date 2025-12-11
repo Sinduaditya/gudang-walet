@@ -11,7 +11,7 @@ class SortingResult extends Model
 
     protected $table = 'sorting_results';
 
-    protected $fillable = ['grading_date', 'receipt_item_id', 'grade_company_id', 'weight_grams', 'quantity', 'percentage_difference', 'notes', 'outgoing_type', 'category_grade', 'created_by'];
+    protected $fillable = ['grading_date', 'receipt_item_id', 'grade_company_id', 'weight_grams', 'quantity', 'percentage_difference', 'notes', 'outgoing_type', 'category_grade', 'created_by', 'idm_management_id'];
 
     const OUTGOING_TYPE_PENJUALAN_LANGSUNG = 'penjualan_langsung';
     const OUTGOING_TYPE_INTERNAL = 'internal';
@@ -66,5 +66,9 @@ class SortingResult extends Model
     public function supplier()
     {
         return $this->hasOneThrough(Supplier::class, PurchaseReceipt::class, 'id', 'id', 'receipt_item_id', 'supplier_id')->through('receiptItem');
+    }
+    public function idmManagement()
+    {
+        return $this->belongsTo(IdmManagement::class);
     }
 }
