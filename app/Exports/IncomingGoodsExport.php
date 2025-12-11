@@ -9,6 +9,9 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
 {
@@ -18,10 +21,9 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
     public function __construct($filters = [])
     {
         $this->filters = $filters;
-        
+
         $query = PurchaseReceipt::with(['supplier', 'receiptItems.gradeSupplier']);
 
-        // Apply date filters
         if (!empty($filters['month'])) {
             $query->whereMonth('receipt_date', $filters['month']);
         }
@@ -32,71 +34,74 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
 
         $receipts = $query->latest('receipt_date')->get();
 
-        // Transform data to flat structure with items + totals
         $this->data = collect();
-        
+
         foreach ($receipts as $receipt) {
-            // Add individual items
             foreach ($receipt->receiptItems as $index => $item) {
                 $percentage = 0;
                 $decimal = 0;
+                // Hitung decimal dan percentage
                 if ($item->supplier_weight_grams > 0) {
-                    $decimal = $item->difference_grams / $item->supplier_weight_grams; // Bisa negatif/positif
-                    $percentage = abs($decimal) * 100; // ✅ Selalu positif untuk persentase
+                    $decimal = $item->difference_grams / $item->supplier_weight_grams;
+                    $percentage = abs($decimal) * 100;
                 }
 
                 $this->data->push([
                     'type' => 'item',
+                    'supplier_name' => $receipt->supplier->name ?? '-',
                     'receipt_date' => $receipt->receipt_date,
                     'unloading_date' => $receipt->unloading_date,
-                    'supplier_name' => $receipt->supplier->name ?? '-',
                     'grade_name' => $item->gradeSupplier->name ?? '-',
-                    'supplier_weight' => $item->supplier_weight_grams,
-                    'warehouse_weight' => $item->warehouse_weight_grams,
-                    'difference' => $item->difference_grams,
-                    'percentage' => $percentage, // ✅ Selalu positif
-                    'decimal_ratio' => $decimal, // ✅ Tambah rasio desimal
+                    'supplier_weight' => (float) $item->supplier_weight_grams,
+                    'warehouse_weight' => (float) $item->warehouse_weight_grams,
+                    'difference' => (float) $item->difference_grams,
+                    'decimal_ratio' => $decimal,
+                    'percentage' => $percentage,
+                    'moisture_percentage' => $item->moisture_percentage,
+                    'status' => $item->status,
                     'is_first_item' => $index === 0,
                     'receipt_id' => $receipt->id,
                 ]);
             }
 
-            // Add total row for this receipt
+            // Hitung Total
             $totalSupplierWeight = $receipt->receiptItems->sum('supplier_weight_grams');
             $totalWarehouseWeight = $receipt->receiptItems->sum('warehouse_weight_grams');
             $totalDifference = $receipt->receiptItems->sum('difference_grams');
-            
-            // ✅ FIX: Total percentage juga selalu positif
+
             $totalDecimal = $totalSupplierWeight > 0 ? ($totalDifference / $totalSupplierWeight) : 0;
-            $totalPercentage = abs($totalDecimal) * 100; // ✅ Selalu positif
+            $totalPercentage = abs($totalDecimal) * 100;
 
             $this->data->push([
                 'type' => 'total',
+                'supplier_name' => '',
                 'receipt_date' => null,
                 'unloading_date' => null,
-                'supplier_name' => '',
                 'grade_name' => 'TOTAL',
-                'supplier_weight' => $totalSupplierWeight,
-                'warehouse_weight' => $totalWarehouseWeight,
-                'difference' => $totalDifference,
-                'percentage' => $totalPercentage, // ✅ Selalu positif
-                'decimal_ratio' => $totalDecimal, // ✅ Tambah total rasio desimal
+                'supplier_weight' => (float) $totalSupplierWeight,
+                'warehouse_weight' => (float) $totalWarehouseWeight,
+                'difference' => (float) $totalDifference,
+                'decimal_ratio' => $totalDecimal,
+                'percentage' => $totalPercentage,
+                'moisture_percentage' => null,
+                'status' => '',
                 'is_first_item' => false,
                 'receipt_id' => $receipt->id,
             ]);
 
-            // Add empty row for separation (except for last receipt)
             $this->data->push([
                 'type' => 'separator',
+                'supplier_name' => '',
                 'receipt_date' => null,
                 'unloading_date' => null,
-                'supplier_name' => '',
                 'grade_name' => '',
                 'supplier_weight' => '',
                 'warehouse_weight' => '',
                 'difference' => '',
-                'percentage' => '',
                 'decimal_ratio' => '',
+                'percentage' => '',
+                'moisture_percentage' => '',
+                'status' => '',
                 'is_first_item' => false,
                 'receipt_id' => $receipt->id,
             ]);
@@ -110,53 +115,43 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function headings(): array
     {
-        $title = 'Data Barang Masuk';
-        
-        if (!empty($this->filters['month']) && !empty($this->filters['year'])) {
-            $monthName = date('F', mktime(0, 0, 0, $this->filters['month'], 1));
-            $title .= ' - ' . $monthName . ' ' . $this->filters['year'];
-        } elseif (!empty($this->filters['year'])) {
-            $title .= ' - Tahun ' . $this->filters['year'];
-        } elseif (!empty($this->filters['month'])) {
-            $monthName = date('F', mktime(0, 0, 0, $this->filters['month'], 1));
-            $title .= ' - ' . $monthName;
-        }
-
         return [
-            'Tanggal Datang',
-            'Tanggal Bongkar', 
-            'Nama Supplier',
-            'Grade Supplier',
-            'Berat Datang (gr)',
-            'Berat Timbang (gr)',
-            'Selisih (gr)',
-            'Rasio Desimal', // ✅ Tambah kolom rasio desimal
-            'Persentase (%)'
+            'Nama Supplier',       // A (1)
+            'Tanggal Datang',      // B (2)
+            'Tanggal Bongkar',     // C (3)
+            'Grade Supplier',      // D (4)
+            'Berat Supplier (gr)', // E (5)
+            'Berat Gudang (gr)',   // F (6)
+            'Selisih (gr)',        // G (7)
+            'Rasio Desimal',       // H (8)
+            'Persentase (%)',      // I (9)
+            'Kadar Air (%)',       // J (10)
+            'Status'               // K (11)
         ];
     }
 
     public function map($row): array
     {
         if ($row['type'] === 'separator') {
-            return ['', '', '', '', '', '', '', '', ''];
+            return array_fill(0, 11, '');
         }
 
-        // ✅ FIX: Format persentase (bulat atau 1 desimal, selalu positif)
+        // Format Persentase (ubah dari 2 atau 1.9 ke bentuk gram/persen yang benar)
         $percentageFormatted = '';
         if ($row['type'] === 'item' || $row['type'] === 'total') {
+            // Persentase sudah dihitung dengan benar dari difference/supplier_weight * 100
             if ($row['percentage'] > 0) {
-                // ✅ Jika bulat, tampilkan tanpa desimal. Jika tidak, 1 desimal
                 if ($row['percentage'] == floor($row['percentage'])) {
                     $percentageFormatted = number_format($row['percentage'], 0, ',', '.');
                 } else {
-                    $percentageFormatted = number_format($row['percentage'], 1, ',', '.');
+                    $percentageFormatted = number_format($row['percentage'], 2, ',', '.'); // 2 desimal untuk akurasi
                 }
             } else {
                 $percentageFormatted = '0';
             }
         }
 
-        // ✅ FIX: Format rasio desimal (3 desimal, bisa negatif/positif)
+        // Format Rasio Desimal (3 desimal)
         $decimalFormatted = '';
         if ($row['type'] === 'item' || $row['type'] === 'total') {
             if (isset($row['decimal_ratio']) && abs($row['decimal_ratio']) > 0.0001) {
@@ -166,113 +161,126 @@ class IncomingGoodsExport implements FromCollection, WithHeadings, WithMapping, 
             }
         }
 
-        // ✅ Format selisih dengan status Indonesia
+        // Format Selisih (langsung dalam gram, bukan kg)
         $differenceFormatted = '';
         if ($row['type'] === 'item' || $row['type'] === 'total') {
             if ($row['difference'] > 0) {
-                $differenceFormatted = '+' . number_format($row['difference'], 0, ',', '.') . ' (kelebihan)';
+                $differenceFormatted = '+' . number_format($row['difference'], 0, ',', '') . ' (kelebihan)';
             } elseif ($row['difference'] < 0) {
-                $differenceFormatted = number_format($row['difference'], 0, ',', '.') . ' (susut)';
+                $differenceFormatted = number_format($row['difference'], 0, ',', '') . ' (susut)';
             } else {
                 $differenceFormatted = '0 (sama)';
             }
         }
 
+        // Format Status
+        $statusFormatted = '';
+        if ($row['type'] === 'item' && !empty($row['status'])) {
+            $statusFormatted = ucwords(str_replace('_', ' ', $row['status']));
+        }
+
+        // Format Kadar Air
+        $moistureFormatted = '';
+        if ($row['type'] === 'item' && isset($row['moisture_percentage'])) {
+            $moistureFormatted = number_format($row['moisture_percentage'], 2, ',', '.') . '%';
+        }
+
         return [
+            ($row['is_first_item'] && $row['type'] === 'item') ? $row['supplier_name'] : '',
             ($row['is_first_item'] && $row['type'] === 'item') ? optional($row['receipt_date'])->format('d/m/Y') : '',
             ($row['is_first_item'] && $row['type'] === 'item') ? optional($row['unloading_date'])->format('d/m/Y') : '',
-            ($row['is_first_item'] && $row['type'] === 'item') ? $row['supplier_name'] : '',
             $row['grade_name'],
-            $row['supplier_weight'] !== '' ? number_format($row['supplier_weight'], 0, ',', '.') : '', // ✅ Format Indonesia
-            $row['warehouse_weight'] !== '' ? number_format($row['warehouse_weight'], 0, ',', '.') : '', // ✅ Format Indonesia
+            // Format angka bulat untuk gram (sudah dalam gram dari database)
+            $row['supplier_weight'] !== '' ? number_format($row['supplier_weight'], 0, ',', '') : '',
+            $row['warehouse_weight'] !== '' ? number_format($row['warehouse_weight'], 0, ',', '') : '',
             $differenceFormatted,
-            $decimalFormatted, // ✅ Rasio desimal
-            $percentageFormatted // ✅ Persentase
+            $decimalFormatted,
+            $percentageFormatted,
+            $moistureFormatted,
+            $statusFormatted
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        $styles = [
-            // Header row styling
-            1 => [
-                'font' => ['bold' => true, 'size' => 12],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'E5E7EB']
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                    ],
-                ]
+        $styles = [];
+
+        // Style Header Row (Row 1)
+        $sheet->getStyle('A1:K1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E5E7EB']
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
             ]
-        ];
+        ]);
 
         $rowNumber = 2;
         foreach ($this->data as $row) {
+            if ($row['type'] === 'separator') {
+                // Skip styling untuk separator
+                $rowNumber++;
+                continue;
+            }
+
             if ($row['type'] === 'total') {
-                // Style untuk baris TOTAL
-                $styles[$rowNumber] = [
+                // Total Row: Background kuning dengan border medium untuk semua kolom
+                $sheet->getStyle("A{$rowNumber}:K{$rowNumber}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
                     'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'FEF3C7'] // Yellow background
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'FEF3C7']
                     ],
                     'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_MEDIUM,
-                        ],
+                        'allBorders' => ['borderStyle' => Border::BORDER_MEDIUM]
+                    ],
+                    'alignment' => [
+                        'vertical' => Alignment::VERTICAL_CENTER
                     ]
-                ];
+                ]);
             } elseif ($row['type'] === 'item') {
-                // ✅ Style based on percentage threshold (5%)
                 $percentage = (float) $row['percentage'];
                 $difference = (float) $row['difference'];
-                
-                if ($percentage > 2) { // ✅ 2% threshold
-                    // ✅ Red styling untuk selisih dan persentase di atas 2%
-                    $styles['G' . $rowNumber] = [
+
+                // Apply border thin untuk semua kolom item
+                $sheet->getStyle("A{$rowNumber}:K{$rowNumber}")->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+                    ],
+                    'alignment' => [
+                        'vertical' => Alignment::VERTICAL_CENTER
+                    ]
+                ]);
+
+                // Conditional coloring untuk kolom Selisih (G), Rasio (H), Persentase (I)
+                if ($percentage > 2) {
+                    // Background merah muda dengan teks merah bold untuk G, H, I
+                    $sheet->getStyle("G{$rowNumber}:I{$rowNumber}")->applyFromArray([
                         'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
                         'fill' => [
-                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                            'fillType' => Fill::FILL_SOLID,
                             'startColor' => ['rgb' => 'FEE2E2']
                         ]
-                    ];
-                    $styles['H' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
-                        'fill' => [
-                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => 'FEE2E2']
-                        ]
-                    ];
-                    $styles['I' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => 'DC2626'], 'bold' => true],
-                        'fill' => [
-                            'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                            'startColor' => ['rgb' => 'FEE2E2']
-                        ]
-                    ];
-                } elseif ($difference < 0) {
-                    // ✅ Light red untuk susut tapi di bawah 2%
-                    $styles['G' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => 'DC2626']]
-                    ];
-                } elseif ($difference > 0) {
-                    // ✅ Green untuk kelebihan
-                    $styles['G' . $rowNumber] = [
-                        'font' => ['color' => ['rgb' => '059669']]
-                    ];
+                    ]);
+                } else {
+                    // Warna teks saja untuk kolom Selisih
+                    if ($difference < 0) {
+                        $sheet->getStyle("G{$rowNumber}")->getFont()->getColor()->setRGB('DC2626'); // Merah
+                    } elseif ($difference > 0) {
+                        $sheet->getStyle("G{$rowNumber}")->getFont()->getColor()->setRGB('059669'); // Hijau
+                    }
                 }
 
-                // Border untuk item rows
-                $styles['A' . $rowNumber . ':I' . $rowNumber] = [
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                        ],
-                    ]
-                ];
+                // Center alignment untuk tanggal dan status
+                $sheet->getStyle("B{$rowNumber}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("C{$rowNumber}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("K{$rowNumber}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
             }
 
             $rowNumber++;

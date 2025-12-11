@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class TransferIdmController extends Controller
 {
-    public function step1()
+    public function index()
     {
         return view('admin.transfer-idm.index');
     }
