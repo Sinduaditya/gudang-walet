@@ -23,4 +23,9 @@ class IdmDetail extends Model
     {
         return $this->belongsTo(IdmManagement::class);
     }
+
+    public function transferDetails()
+    {
+        return $this->hasMany(IdmTransferDetail::class, 'idm_detail_id');
+    }
 }

@@ -161,6 +161,17 @@ Route::middleware(['auth'])->group(function () {
                     ->name('transfer-idm.')
                     ->group(function () {
                         Route::get('/index', [TransferIdmController::class, 'index'])->name('index');
+                        Route::get('/create', [TransferIdmController::class, 'create'])->name('create');
+                        Route::get('/step-2', [TransferIdmController::class, 'step2'])->name('step2'); // Changed to GET if using form submission to this route? Or POST?
+                        // If Step 1 form submits POST to Step 2, then POST.
+                        // "halaman tambah barang transfer step 2" implies a page.
+                        // I implemented `step2` method. If Step 1 is a form, it should POST to step 2 to carry data without huge URL.
+                        Route::post('/step-2', [TransferIdmController::class, 'step2'])->name('step2'); 
+                        Route::post('/store', [TransferIdmController::class, 'store'])->name('store');
+                        Route::get('/{id}', [TransferIdmController::class, 'show'])->name('show');
+                        Route::get('/{id}/edit', [TransferIdmController::class, 'edit'])->name('edit');
+                        Route::put('/{id}', [TransferIdmController::class, 'update'])->name('update');
+                        Route::delete('/{id}', [TransferIdmController::class, 'destroy'])->name('destroy');
                     });
             });
 
