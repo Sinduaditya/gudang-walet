@@ -177,17 +177,22 @@ class BarangKeluarService
         ]);
 
         // TRANSFER_IN ke lokasi tujuan (quantity positif = berat bersih)
-        InventoryTransaction::create([
-            'transaction_date' => $data['transfer_date'] ?? now(),
-            'grade_company_id' => $data['grade_company_id'],
-            'location_id' => $data['to_location_id'],
-            'supplier_id' => $supplierId,
-            'quantity_change_grams' => abs($data['weight_grams']),
-            'transaction_type' => 'TRANSFER_IN',
-            'reference_id' => $transfer->id,
-            'sorting_result_id' => $transfer->sorting_result_id,
-            'created_by' => $userId,
-        ]);
+        // KECUALI jika tujuan adalah DMK, maka barang dianggap hilang/keluar dari tracking (seperti penjualan)
+        $toLocation = Location::find($data['to_location_id']);
+        
+        if ($toLocation && stripos($toLocation->name, 'DMK') === false) {
+            InventoryTransaction::create([
+                'transaction_date' => $data['transfer_date'] ?? now(),
+                'grade_company_id' => $data['grade_company_id'],
+                'location_id' => $data['to_location_id'],
+                'supplier_id' => $supplierId,
+                'quantity_change_grams' => abs($data['weight_grams']),
+                'transaction_type' => 'TRANSFER_IN',
+                'reference_id' => $transfer->id,
+                'sorting_result_id' => $transfer->sorting_result_id,
+                'created_by' => $userId,
+            ]);
+        }
     }
 
     /**

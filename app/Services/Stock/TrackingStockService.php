@@ -28,7 +28,7 @@ class TrackingStockService
 
     public function calculateGlobalStock(int $gradeId): int
     {
-        return (int) InventoryTransaction::where('grade_company_id', $gradeId)->sum('quantity_change_grams');
+        return (int) round(InventoryTransaction::where('grade_company_id', $gradeId)->sum('quantity_change_grams'));
     }
 
     // public function getStockPerLocation(int $gradeId, ?string $search = null): Collection

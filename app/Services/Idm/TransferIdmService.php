@@ -8,8 +8,14 @@ use App\Models\IdmDetail;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+use App\Models\InventoryTransaction;
+use App\Models\Location;
+use Illuminate\Support\Facades\Auth;
+
 class TransferIdmService
 {
+    // ... (existing methods getTransfers, getAvailableIdmDetails, generateTransferCode) ...
+
     public function getTransfers($filters = [])
     {
         $query = IdmTransfer::withCount('details');
@@ -56,6 +62,13 @@ class TransferIdmService
             $query->where('grade_idm_name', 'like', '%' . $filters['grade_idm_name'] . '%');
         }
 
+        // Filter: IDM Type (Category from SortingResult)
+        if (!empty($filters['idm_type'])) {
+            $query->whereHas('idmManagement.sourceItems', function ($q) use ($filters) {
+                $q->where('category_grade', $filters['idm_type']);
+            });
+        }
+
         return $query->get();
     }
 
@@ -93,18 +106,61 @@ class TransferIdmService
                 'notes' => $data['notes'] ?? null,
             ]);
 
+            // Determine Source Location
+            $sourceLocationId = $data['source_location_id'] ?? null;
+            if (!$sourceLocationId) {
+                // Fallback to defaults if not provided (though UI provides it)
+                $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+                $sourceLocationId = $gudangUtama ? $gudangUtama->id : null;
+            }
+
+            $userId = Auth::id();
+
             foreach ($data['items'] as $item) {
-                // Determine item name (fallback to grade name if not provided? logic for "Nama Barang")
-                // Assuming we pass item details
                 IdmTransferDetail::create([
                     'idm_transfer_id' => $transfer->id,
                     'idm_detail_id' => $item['id'],
-                    'item_name' => $item['grade_idm_name'] ?? 'Unknown', // Or fetch from somewhere else if needed
+                    'item_name' => $item['grade_idm_name'] ?? 'Unknown',
                     'grade_idm_name' => $item['grade_idm_name'],
                     'weight' => $item['weight'],
                     'price' => $item['price'],
                     'total_price' => $item['total_price'],
                 ]);
+
+                // Record Inventory Transaction (Deduct from Source Location)
+                if ($sourceLocationId) {
+                    // Need to fetch details to get relations for Inventory Transaction
+                    $detailModel = IdmDetail::with(['idmManagement.sourceItems'])->find($item['id']);
+                    
+                    if ($detailModel) {
+                        $sortingResult = $detailModel->idmManagement->sourceItems->first();
+                        $management = $detailModel->idmManagement;
+                        
+                        // Calculate Proportional Weight (Item Weight + Share of Shrinkage)
+                        // Formula: Item Weight * (Initial Weight / Sum of Details Weight)
+                        $totalOutputWeight = $management->details->sum('weight');
+                        $deductionWeight = $item['weight'];
+
+                        if ($totalOutputWeight > 0 && $management->initial_weight > 0) {
+                            $factor = $management->initial_weight / $totalOutputWeight;
+                            $deductionWeight = round($item['weight'] * $factor);
+                        }
+
+                        // Ensure precise rounding not needed if DB handles float, but logically consistent
+                        InventoryTransaction::create([
+                            'transaction_date' => $transfer->transfer_date,
+                            'grade_company_id' => $detailModel->idmManagement->grade_company_id,
+                            'location_id' => $sourceLocationId,
+                            'supplier_id' => $detailModel->idmManagement->supplier_id,
+                            // Deduct weight in grams (proportional)
+                            'quantity_change_grams' => -($deductionWeight), 
+                            'transaction_type' => 'IDM_TRANSFER_OUT',
+                            'reference_id' => $transfer->id,
+                            'sorting_result_id' => $sortingResult->id ?? null,
+                            'created_by' => $userId,
+                        ]);
+                    }
+                }
             }
 
             return $transfer;
@@ -131,8 +187,15 @@ class TransferIdmService
             $transfer->save();
 
             // Sync items: Delete all existing details and recreate
-            // This is safe because we are passing the "full state" of desired items
             $transfer->details()->delete();
+
+            // Revert Inventory Transactions for this transfer before recreating
+            InventoryTransaction::where('transaction_type', 'IDM_TRANSFER_OUT')
+                ->where('reference_id', $transfer->id)
+                ->delete();
+
+            $gudangUtama = Location::where('name', 'Gudang Utama')->first();
+            $userId = Auth::id();
 
             foreach ($data['items'] as $item) {
                 IdmTransferDetail::create([
@@ -144,9 +207,55 @@ class TransferIdmService
                     'price' => $item['price'],
                     'total_price' => $item['total_price'],
                 ]);
+
+                // Record Inventory Transaction
+                if ($gudangUtama) {
+                    $detailModel = IdmDetail::with(['idmManagement.sourceItems'])->find($item['id']);
+                    
+                    if ($detailModel) {
+                        $sortingResult = $detailModel->idmManagement->sourceItems->first();
+                        $management = $detailModel->idmManagement;
+
+                        // Calculate Proportional Weight
+                        $totalOutputWeight = $management->details->sum('weight');
+                        $deductionWeight = $item['weight'];
+
+                        if ($totalOutputWeight > 0 && $management->initial_weight > 0) {
+                            $factor = $management->initial_weight / $totalOutputWeight;
+                            $deductionWeight = round($item['weight'] * $factor);
+                        }
+                        
+                        InventoryTransaction::create([
+                            'transaction_date' => $transfer->transfer_date,
+                            'grade_company_id' => $detailModel->idmManagement->grade_company_id,
+                            'location_id' => $gudangUtama->id,
+                            'supplier_id' => $detailModel->idmManagement->supplier_id,
+                            'quantity_change_grams' => -($deductionWeight), 
+                            'transaction_type' => 'IDM_TRANSFER_OUT',
+                            'reference_id' => $transfer->id,
+                            'sorting_result_id' => $sortingResult->id ?? null,
+                            'created_by' => $userId,
+                        ]);
+                    }
+                }
             }
 
             return $transfer;
+        });
+    }
+
+    public function deleteTransfer($id)
+    {
+        return DB::transaction(function () use ($id) {
+            $transfer = IdmTransfer::findOrFail($id);
+            
+            // Revert Inventory Transactions
+            InventoryTransaction::where('transaction_type', 'IDM_TRANSFER_OUT')
+                ->where('reference_id', $transfer->id)
+                ->delete();
+                
+            $transfer->delete();
+            return true;
         });
     }
 
