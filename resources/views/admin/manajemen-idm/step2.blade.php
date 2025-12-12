@@ -184,7 +184,7 @@
                                 </div>
 
                                 <div class="pt-4 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM per Gram</label>
+                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM (per Gram)</label>
                                     <input type="hidden" name="estimated_selling_price" id="estimated_selling_price">
                                     <div class="mt-1 text-2xl font-bold text-green-600" id="estimated_price_display">Rp 0</div>
                                     <button type="button" onclick="useRecommendedPrice()" class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none">

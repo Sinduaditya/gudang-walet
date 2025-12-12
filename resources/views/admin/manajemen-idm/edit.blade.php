@@ -51,7 +51,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Left Column: Inputs -->
                         <div class="lg:col-span-2 space-y-6">
-                            
+
                             <!-- Berat & Harga Awal -->
                             <div class="border border-gray-200 rounded-lg p-4">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
@@ -138,7 +138,7 @@
                         <!-- Right Column: Summary -->
                         <div class="bg-gray-50 rounded-xl p-6 h-fit border border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Ringkasan</h3>
-                            
+
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-500">Kekurangan</label>
@@ -151,7 +151,7 @@
                                 </div>
 
                                 <div class="pt-4 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM</label>
+                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM (per Gram)</label>
                                     <div class="relative rounded-md shadow-sm mt-1">
                                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                             <span class="text-gray-500 sm:text-sm">Rp</span>
@@ -259,16 +259,16 @@
             function calculate() {
                 const totalWeight = parseFloat(totalWeightInput.value) || 0;
                 const initialPrice = parseFloat(initialPriceInput.value) || 0;
-                
+
                 // Update Initial Total
                 document.getElementById('total_initial').value = formatCurrency(totalWeight * initialPrice);
-                
+
                 const wPerut = parseFloat(document.getElementById('weight_perutan').value) || 0;
                 const pPerut = parseFloat(document.getElementById('price_perutan').value) || 0;
-                
+
                 const wKakian = parseFloat(document.getElementById('weight_kakian').value) || 0;
                 const pKakian = parseFloat(document.getElementById('price_kakian').value) || 0;
-                
+
                 const wIdm = parseFloat(document.getElementById('weight_idm').value) || 0;
                 const pIdm = parseFloat(document.getElementById('price_idm').value) || 0;
 
@@ -292,9 +292,9 @@
                 // Shortage = Total Initial Cost - Total Selling Price
                 const totalInitialCost = totalWeight * initialPrice;
                 const shortage = Math.max(0, totalInitialCost - totalSellingPrice);
-                
-                shortageDisplay.textContent = formatCurrency(shortage); 
-                
+
+                shortageDisplay.textContent = formatCurrency(shortage);
+
                 // Calculate Recommendation (Kenaikan Harga)
                 // Formula: (Kekurangan) / Berat IDM
                 let recommendation = 0;

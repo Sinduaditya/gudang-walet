@@ -93,7 +93,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nama Grade</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat Awal</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Susut</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Estimasi Harga Jual</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Estimasi Harga Jual per Gram</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Action</th>
                             </tr>
                         </thead>
