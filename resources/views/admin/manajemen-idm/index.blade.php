@@ -55,6 +55,17 @@
                                 @endforeach
                             </select>
                         </div>
+
+                        <!-- Filter Kategori IDM -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori IDM</label>
+                            <select name="category_grade"
+                                class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Semua Kategori</option>
+                                <option value="IDM A" {{ request('category_grade') == 'IDM A' ? 'selected' : '' }}>IDM A</option>
+                                <option value="IDM B" {{ request('category_grade') == 'IDM B' ? 'selected' : '' }}>IDM B</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="flex gap-2">
@@ -78,6 +89,7 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">NO</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nama Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Kategori IDM</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Nama Grade</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Berat Awal</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500">Susut</th>
@@ -93,6 +105,14 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900 font-medium">
                                         {{ $item->supplier->name ?? '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        @php
+                                            $category = $item->sourceItems->first()->category_grade ?? '-';
+                                        @endphp
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $category == 'IDM A' ? 'bg-green-100 text-green-800' : ($category == 'IDM B' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                                            {{ $category }}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ $item->gradeCompany->name ?? '-' }}
@@ -119,7 +139,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
                                         @if(request('month') || request('year'))
                                             Tidak ada data estimasi IDM untuk filter yang dipilih.
                                         @else

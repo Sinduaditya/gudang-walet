@@ -104,7 +104,7 @@
                                     {{-- Supplier Filter for Grade --}}
                                     <div>
                                         <label class="block font-semibold text-gray-700 mb-2">
-                                            Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                            Filter Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                         </label>
                                         <select id="filter_supplier_id" 
                                             class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -141,6 +141,10 @@
                                         @error('grade_company_id')
                                             <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                         @enderror
+                                        {{-- Stock hint --}}
+                                        <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
+                                            Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="relative">
@@ -182,18 +186,12 @@
                                                 </svg>
                                                 Lokasi Tujuan <span class="text-red-500">*</span>
                                             </label>
-                                            <select name="to_location_id" required
-                                                class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
-                                                <option value="">-- Pilih Lokasi Tujuan --</option>
-                                                @foreach ($locations as $loc)
-                                                    @if ($loc->id != ($gudangUtama->id ?? 1))
-                                                        <option value="{{ $loc->id }}"
-                                                            {{ old('to_location_id') == $loc->id ? 'selected' : '' }}>
-                                                            {{ $loc->name }}
-                                                        </option>
-                                                    @endif
-                                                @endforeach
-                                            </select>
+                                            
+                                            <div class="w-full border border-gray-200 bg-gray-50 rounded-lg p-3 text-gray-800 font-medium">
+                                                {{ $dmkLocation->name ?? 'DMK' }}
+                                            </div>
+                                            <input type="hidden" name="to_location_id" value="{{ $dmkLocation->id ?? '' }}">
+                                            
                                             @error('to_location_id')
                                                 <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                             @enderror
@@ -654,6 +652,8 @@
             }
 
             // Grade Selection and Stock Check (same as sell form)
+            // Grade Selection and Stock Check
+            // Grade Selection and Stock Check
             const gradeSelect = document.getElementById('grade_company_id');
             const gradeStockValue = document.getElementById('grade-stock-value');
             const supplierFilter = document.getElementById('filter_supplier_id');
@@ -665,9 +665,12 @@
                 
                 // Reset selection
                 gradeSelect.value = "";
-                gradeStockValue.textContent = '-';
-                gradeStockValue.classList.remove('text-purple-600', 'text-red-600');
-                document.getElementById('stock-check-result').classList.add('hidden');
+                if (gradeStockValue) {
+                    gradeStockValue.textContent = '-';
+                    gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                }
+                const resultEl = document.getElementById('stock-check-result');
+                if (resultEl) resultEl.classList.add('hidden');
 
                 options.forEach(option => {
                     if (option.value === "") return; // Skip placeholder
@@ -684,42 +687,27 @@
                 });
             });
 
+            // Auto fetch stock info when grade changes
             gradeSelect.addEventListener('change', function() {
+                // Reset stock check result
+                const resultEl = document.getElementById('stock-check-result');
+                if (resultEl) resultEl.classList.add('hidden');
+
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption.value) {
                     const stock = selectedOption.dataset.stock || 0;
-                    gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
-                    gradeStockValue.classList.remove('text-red-600');
-                    gradeStockValue.classList.add('text-purple-600');
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
+                        gradeStockValue.classList.remove('text-red-600');
+                        gradeStockValue.classList.add('text-green-600');
+                    }
                 } else {
-                    gradeStockValue.textContent = '-';
-                    gradeStockValue.classList.remove('text-purple-600', 'text-red-600');
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = '-';
+                        gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                    }
                 }
             });
-
-            function fetchStockInfo(gradeId) {
-                fetch(
-                        `{{ route('barang.keluar.transfer.stock_check') }}?grade_company_id=${gradeId}&location_id={{ $gudangUtama->id ?? 1 }}`
-                        )
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.ok) {
-                            gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(data.available_grams) +
-                                ' gr';
-                            gradeStockValue.classList.remove('text-red-600');
-                            gradeStockValue.classList.add('text-purple-600');
-                        } else {
-                            gradeStockValue.textContent = 'Error';
-                            gradeStockValue.classList.remove('text-purple-600');
-                            gradeStockValue.classList.add('text-red-600');
-                        }
-                    })
-                    .catch(() => {
-                        gradeStockValue.textContent = 'Error cek stok';
-                        gradeStockValue.classList.remove('text-purple-600');
-                        gradeStockValue.classList.add('text-red-600');
-                    });
-            }
 
                 function calculateTotalDeduction() {
                     const weight = parseFloat(document.getElementById('weight_grams').value || 0);
@@ -803,16 +791,23 @@
             }
 
             // Check if there's a page parameter (from pagination), if yes, show history tab
+            // Check if there's a page parameter (from pagination), if yes, show history tab
+            // Check if there's a page parameter (from pagination), if yes, show history tab
             document.addEventListener('DOMContentLoaded', function() {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.has('page') || urlParams.has('start_date') || urlParams.has('end_date')) {
                     toggleHistoryTab();
                 }
 
-                // Set initial stock if grade is pre-selected
-                const selectedGrade = gradeSelect.value;
-                if (selectedGrade) {
-                    fetchStockInfo(selectedGrade);
+                // Initialize stock display if grade is selected
+                if (gradeSelect.value) {
+                    const selectedOption = gradeSelect.options[gradeSelect.selectedIndex];
+                    const stock = selectedOption.dataset.stock || 0;
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
+                        gradeStockValue.classList.remove('text-red-600');
+                        gradeStockValue.classList.add('text-green-600');
+                    }
                 }
             });
 
@@ -840,8 +835,7 @@
 
                 const gradeName = selectedOption.text;
                 const fromLocation = "Gudang Utama"; // Fixed as per controller
-                const toSelect = document.querySelector('select[name="to_location_id"]');
-                const toLocation = toSelect.options[toSelect.selectedIndex].text;
+                const toLocation = "DMK"; // Static as per requirement
                 const notes = document.querySelector('textarea[name="notes"]').value;
 
                 // Populate modal

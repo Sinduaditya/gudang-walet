@@ -22,7 +22,15 @@
                 <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Grade</dt>
-                        <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $idmManagement->gradeCompany->name ?? '-' }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold flex items-center gap-2">
+                            {{ $idmManagement->gradeCompany->name ?? '-' }}
+                            @php
+                                $category = $idmManagement->sourceItems->first()->category_grade ?? '-';
+                            @endphp
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $category == 'IDM A' ? 'bg-green-100 text-green-800' : ($category == 'IDM B' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                                {{ $category }}
+                            </span>
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Supplier</dt>
@@ -148,9 +156,9 @@
                                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                             <span class="text-gray-500 sm:text-sm">Rp</span>
                                         </div>
-                                        <input type="number" step="0.01" name="estimated_selling_price" id="estimated_selling_price" 
-                                            value="{{ $idmManagement->estimated_selling_price }}" required
-                                            class="block w-full rounded-md border-gray-300 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-green-600">
+                                        <input type="hidden" name="estimated_selling_price" id="estimated_selling_price" value="{{ $idmManagement->estimated_selling_price }}">
+                                        <input type="text" id="estimated_selling_price_display" readonly
+                                            class="block w-full rounded-md border-gray-300 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-green-600 bg-gray-100">
                                     </div>
                                 </div>
                             </div>
@@ -242,6 +250,7 @@
             const shortageDisplay = document.getElementById('shortage_display');
             const recommendationDisplay = document.getElementById('recommendation_display');
             const estimatedPriceInput = document.getElementById('estimated_selling_price');
+            const estimatedPriceDisplay = document.getElementById('estimated_selling_price_display');
 
             function formatCurrency(amount) {
                 return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
@@ -296,9 +305,10 @@
                 recommendationDisplay.textContent = formatCurrency(recommendation * 1000);
 
                 // Calculate Estimated IDM Selling Price
-                // Formula: (Harga Jual IDM + Kenaikan Harga) * 1000
-                const estimatedIdmPrice = (pIdm + recommendation) * 1000;
+                // Formula: (Harga Jual IDM + Kenaikan Harga)
+                const estimatedIdmPrice = Math.ceil(pIdm + recommendation);
                 estimatedPriceInput.value = estimatedIdmPrice;
+                estimatedPriceDisplay.value = formatCurrency(estimatedIdmPrice);
             }
 
             inputs.forEach(input => {

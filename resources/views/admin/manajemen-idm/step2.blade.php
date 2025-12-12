@@ -47,10 +47,18 @@
 
             <!-- Item Info -->
             <div class="bg-gray-50 shadow-sm border rounded-lg p-6 mb-6">
-                <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <dl class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Grade</dt>
                         <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $firstItem->gradeCompany->name ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Kategori IDM</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ ($firstItem->category_grade ?? '') == 'IDM A' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                {{ $firstItem->category_grade ?? '-' }}
+                            </span>
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Supplier</dt>

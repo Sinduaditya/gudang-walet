@@ -50,9 +50,7 @@ class TransferInternalController extends Controller
             return $item['batch_stock_grams'] > 0;
         });
 
-        $locations = Location::where('name', 'LIKE', '%IDM%')
-            ->orWhere('name', 'LIKE', '%DMK%')
-            ->get();
+        $dmkLocation = Location::where('name', 'DMK')->first();
 
         // Fetch Suppliers and Grades for filters
         $suppliers = \App\Models\Supplier::all();
@@ -93,7 +91,7 @@ class TransferInternalController extends Controller
 
         return view('admin.barang-keluar.transfer-step1', compact(
             'gradesWithStock', 
-            'locations', 
+            'dmkLocation', 
             'transferInternalTransactions', 
             'gudangUtama',
             'suppliers',
