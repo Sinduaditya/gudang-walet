@@ -47,10 +47,18 @@
 
             <!-- Item Info -->
             <div class="bg-gray-50 shadow-sm border rounded-lg p-6 mb-6">
-                <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <dl class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Grade</dt>
                         <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $firstItem->gradeCompany->name ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Kategori IDM</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ ($firstItem->category_grade ?? '') == 'IDM A' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                {{ $firstItem->category_grade ?? '-' }}
+                            </span>
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Supplier</dt>
@@ -176,7 +184,7 @@
                                 </div>
 
                                 <div class="pt-4 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM per Gram</label>
+                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM (per Gram)</label>
                                     <input type="hidden" name="estimated_selling_price" id="estimated_selling_price">
                                     <div class="mt-1 text-2xl font-bold text-green-600" id="estimated_price_display">Rp 0</div>
                                     <button type="button" onclick="useRecommendedPrice()" class="mt-2 text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none">

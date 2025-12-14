@@ -392,6 +392,18 @@
                                     @endif
 
                                     <div>
+                                        <label for="supplier_id" class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                                        <select name="supplier_id" id="supplier_id" class="w-full md:w-auto text-sm border-gray-300 rounded-md px-3 py-2 focus:ring-teal-500 focus:border-teal-500">
+                                            <option value="">Semua Supplier</option>
+                                            @foreach($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                                    {{ $supplier->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div>
                                         <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Dari
                                             Tanggal</label>
                                         <input type="date" name="start_date" id="start_date"

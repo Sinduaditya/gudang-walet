@@ -24,6 +24,7 @@ class ReceiveExternalController extends Controller
     public function receiveExternalStep1(Request $request)
     {
         $grades = GradeCompany::all();
+        $suppliers = \App\Models\Supplier::all();
         
         $locations = Location::where('name', 'NOT LIKE', '%IDM%')
             ->where('name', 'NOT LIKE', '%DMK%')
@@ -46,6 +47,12 @@ class ReceiveExternalController extends Controller
             $query->where('grade_company_id', $request->grade_id);
         }
 
+        if ($request->filled('supplier_id')) {
+            $query->whereHas('sortingResult.receiptItem.purchaseReceipt.supplier', function($q) use ($request) {
+                $q->where('id', $request->supplier_id);
+            });
+        }
+
         if ($request->filled('start_date')) {
             $query->whereDate('transaction_date', '>=', $request->start_date);
         }
@@ -60,6 +67,7 @@ class ReceiveExternalController extends Controller
 
         return view('admin.barang-keluar.receive-external-step1', compact(
             'grades',
+            'suppliers',
             'locations',
             'receiveExternalTransactions'
         ));

@@ -105,10 +105,10 @@
                                 {{-- Supplier Filter for Grade --}}
                                 <div>
                                     <label class="block font-semibold text-gray-700 mb-2">
-                                        Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                        Filter Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                     </label>
                                     <select id="filter_supplier_id" 
-                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                                        class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                         <option value="">-- Semua Supplier --</option>
                                         @foreach($suppliers as $s)
                                             <option value="{{ $s->id }}">{{ $s->name }}</option>
@@ -141,6 +141,10 @@
                                     @error('grade_company_id')
                                         <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
+                                    {{-- Stock hint --}}
+                                    <p id="grade-stock-hint" class="mt-2 text-sm text-gray-500">
+                                        Stok tersedia: <span id="grade-stock-value" class="font-semibold">-</span>
+                                    </p>
                                 </div>
                             </div>
 
@@ -709,7 +713,9 @@
             }
 
             // Grade Selection and Stock Check
+            // Grade Selection and Stock Check
             const gradeSelect = document.querySelector('select[name="grade_company_id"]');
+            const gradeStockValue = document.getElementById('grade-stock-value');
             const supplierFilter = document.getElementById('filter_supplier_id');
 
             // Filter Grades by Supplier
@@ -719,6 +725,10 @@
                 
                 // Reset selection
                 gradeSelect.value = "";
+                if (gradeStockValue) {
+                    gradeStockValue.textContent = '-';
+                    gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                }
                 const resultEl = document.getElementById('stock-check-result');
                 if (resultEl) resultEl.classList.add('hidden');
 
@@ -742,6 +752,21 @@
                 // Reset stock check result
                 const resultEl = document.getElementById('stock-check-result');
                 if (resultEl) resultEl.classList.add('hidden');
+
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.value) {
+                    const stock = selectedOption.dataset.stock || 0;
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
+                        gradeStockValue.classList.remove('text-red-600');
+                        gradeStockValue.classList.add('text-green-600');
+                    }
+                } else {
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = '-';
+                        gradeStockValue.classList.remove('text-green-600', 'text-red-600');
+                    }
+                }
             });
 
             function calculateTotalDeduction() {
@@ -831,6 +856,17 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.has('page') || urlParams.has('start_date') || urlParams.has('end_date') || urlParams.has('location_id') || urlParams.has('grade_id') || urlParams.has('weight_grams')) {
                     toggleHistoryTab();
+                }
+
+                // Initialize stock display if grade is selected
+                if (gradeSelect.value) {
+                    const selectedOption = gradeSelect.options[gradeSelect.selectedIndex];
+                    const stock = selectedOption.dataset.stock || 0;
+                    if (gradeStockValue) {
+                        gradeStockValue.textContent = new Intl.NumberFormat('id-ID').format(stock) + ' gr';
+                        gradeStockValue.classList.remove('text-red-600');
+                        gradeStockValue.classList.add('text-green-600');
+                    }
                 }
             });
 

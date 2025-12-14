@@ -22,6 +22,12 @@ class ManajemenIdmController extends Controller
             $query->where('grade_company_id', $request->grade_company_id);
         }
 
+        if ($request->has('category_grade') && $request->category_grade != '') {
+            $query->whereHas('sourceItems', function ($q) use ($request) {
+                $q->where('category_grade', $request->category_grade);
+            });
+        }
+
         $idmManagements = $query->latest()->paginate(10);
 
         return view('admin.manajemen-idm.index', compact('idmManagements', 'suppliers', 'gradeCompanies'));

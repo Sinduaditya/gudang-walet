@@ -56,10 +56,10 @@
                                     {{-- Supplier Filter for Grade --}}
                                     <div>
                                         <label class="block font-semibold text-gray-700 mb-2">
-                                            Pilih Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
+                                            Filter Supplier <span class="text-gray-400 font-normal text-xs">(Opsional)</span>
                                         </label>
                                         <select id="filter_supplier_id" 
-                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                             <option value="">-- Semua Supplier --</option>
                                             @foreach($suppliers as $s)
                                                 <option value="{{ $s->id }}">{{ $s->name }}</option>

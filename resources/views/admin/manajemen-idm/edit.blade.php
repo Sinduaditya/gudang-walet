@@ -22,7 +22,15 @@
                 <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Grade</dt>
-                        <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ $idmManagement->gradeCompany->name ?? '-' }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold flex items-center gap-2">
+                            {{ $idmManagement->gradeCompany->name ?? '-' }}
+                            @php
+                                $category = $idmManagement->sourceItems->first()->category_grade ?? '-';
+                            @endphp
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $category == 'IDM A' ? 'bg-green-100 text-green-800' : ($category == 'IDM B' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800') }}">
+                                {{ $category }}
+                            </span>
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Supplier</dt>
@@ -43,7 +51,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <!-- Left Column: Inputs -->
                         <div class="lg:col-span-2 space-y-6">
-                            
+
                             <!-- Berat & Harga Awal -->
                             <div class="border border-gray-200 rounded-lg p-4">
                                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
@@ -130,7 +138,7 @@
                         <!-- Right Column: Summary -->
                         <div class="bg-gray-50 rounded-xl p-6 h-fit border border-gray-200">
                             <h3 class="text-lg font-medium text-gray-900 mb-4">Ringkasan</h3>
-                            
+
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-500">Kekurangan</label>
@@ -143,14 +151,14 @@
                                 </div>
 
                                 <div class="pt-4 border-t border-gray-200">
-                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM</label>
+                                    <label class="block text-sm font-medium text-gray-900">Estimasi Harga Jual IDM (per Gram)</label>
                                     <div class="relative rounded-md shadow-sm mt-1">
                                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                             <span class="text-gray-500 sm:text-sm">Rp</span>
                                         </div>
-                                        <input type="number" step="0.01" name="estimated_selling_price" id="estimated_selling_price" 
-                                            value="{{ $idmManagement->estimated_selling_price }}" required
-                                            class="block w-full rounded-md border-gray-300 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-green-600">
+                                        <input type="hidden" name="estimated_selling_price" id="estimated_selling_price" value="{{ $idmManagement->estimated_selling_price }}">
+                                        <input type="text" id="estimated_selling_price_display" readonly
+                                            class="block w-full rounded-md border-gray-300 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-green-600 bg-gray-100">
                                     </div>
                                 </div>
                             </div>
@@ -242,6 +250,7 @@
             const shortageDisplay = document.getElementById('shortage_display');
             const recommendationDisplay = document.getElementById('recommendation_display');
             const estimatedPriceInput = document.getElementById('estimated_selling_price');
+            const estimatedPriceDisplay = document.getElementById('estimated_selling_price_display');
 
             function formatCurrency(amount) {
                 return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
@@ -250,16 +259,16 @@
             function calculate() {
                 const totalWeight = parseFloat(totalWeightInput.value) || 0;
                 const initialPrice = parseFloat(initialPriceInput.value) || 0;
-                
+
                 // Update Initial Total
                 document.getElementById('total_initial').value = formatCurrency(totalWeight * initialPrice);
-                
+
                 const wPerut = parseFloat(document.getElementById('weight_perutan').value) || 0;
                 const pPerut = parseFloat(document.getElementById('price_perutan').value) || 0;
-                
+
                 const wKakian = parseFloat(document.getElementById('weight_kakian').value) || 0;
                 const pKakian = parseFloat(document.getElementById('price_kakian').value) || 0;
-                
+
                 const wIdm = parseFloat(document.getElementById('weight_idm').value) || 0;
                 const pIdm = parseFloat(document.getElementById('price_idm').value) || 0;
 
@@ -283,9 +292,9 @@
                 // Shortage = Total Initial Cost - Total Selling Price
                 const totalInitialCost = totalWeight * initialPrice;
                 const shortage = Math.max(0, totalInitialCost - totalSellingPrice);
-                
-                shortageDisplay.textContent = formatCurrency(shortage); 
-                
+
+                shortageDisplay.textContent = formatCurrency(shortage);
+
                 // Calculate Recommendation (Kenaikan Harga)
                 // Formula: (Kekurangan) / Berat IDM
                 let recommendation = 0;
@@ -296,9 +305,10 @@
                 recommendationDisplay.textContent = formatCurrency(recommendation * 1000);
 
                 // Calculate Estimated IDM Selling Price
-                // Formula: (Harga Jual IDM + Kenaikan Harga) * 1000
-                const estimatedIdmPrice = (pIdm + recommendation) * 1000;
+                // Formula: (Harga Jual IDM + Kenaikan Harga)
+                const estimatedIdmPrice = Math.ceil(pIdm + recommendation);
                 estimatedPriceInput.value = estimatedIdmPrice;
+                estimatedPriceDisplay.value = formatCurrency(estimatedIdmPrice);
             }
 
             inputs.forEach(input => {
