@@ -52,9 +52,20 @@ class TransferIdmController extends Controller
             ->distinct()
             ->pluck('grade_idm_name');
 
+        // 5. Get unique IDM Types (category_grade)
+        // We need to look at IdmManagement's sourceItems
+        $idmTypes = \App\Models\SortingResult::whereHas('idmManagement.details', function ($q) {
+                $q->whereDoesntHave('transferDetails');
+            })
+            ->select('category_grade')
+            ->distinct()
+            ->pluck('category_grade');
+
         $items = $this->transferIdmService->getAvailableIdmDetails($request->all());
 
-        return view('admin.transfer-idm.create-step-1', compact('suppliers', 'gradeCompanies', 'gradeIdms', 'items'));
+        $locations = \App\Models\Location::all();
+
+        return view('admin.transfer-idm.create-step-1', compact('suppliers', 'gradeCompanies', 'gradeIdms', 'items', 'idmTypes', 'locations'));
     }
 
     public function step2(Request $request)
@@ -129,7 +140,7 @@ class TransferIdmController extends Controller
             'totalNonIdmPrice',
             'idmOnlyItems',
             'nonIdmItems'
-        ));
+        ) + ['source_location_id' => $request->input('source_location_id')]);
     }
 
     public function store(Request $request)
@@ -140,8 +151,9 @@ class TransferIdmController extends Controller
             'transfer_date' => 'required|date',
             'average_idm_price' => 'required|numeric',
             'total_non_idm_price' => 'required|numeric',
-            'total_idm_price' => 'required|numeric', // Maybe calculated?
-            'total_price' => 'required|numeric', // This is the "Harga Transfer"
+            'total_idm_price' => 'required|numeric',
+            'total_price' => 'required|numeric',
+            'source_location_id' => 'sometimes|exists:locations,id', // Make it optional for backward compatibility or strict? Better strict if user wants control.
         ]);
 
         // Re-construct items array from request or re-fetch?
@@ -167,6 +179,7 @@ class TransferIdmController extends Controller
 
         $storeData = [
             'transfer_date' => $request->transfer_date,
+            'source_location_id' => $request->source_location_id,
             'items' => $itemsData,
             'total_price' => $request->total_price,
             'average_idm_price' => $request->average_idm_price,
@@ -252,8 +265,7 @@ class TransferIdmController extends Controller
 
     public function destroy($id)
     {
-        $transfer = \App\Models\IdmTransfer::findOrFail($id);
-        $transfer->delete();
+        $this->transferIdmService->deleteTransfer($id);
         return redirect()->route('barang.keluar.transfer-idm.index')->with('success', 'Transfer Deleted Successfully');
     }
 }

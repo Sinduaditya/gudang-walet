@@ -44,6 +44,7 @@
             <form action="{{ route('barang.keluar.transfer-idm.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="transfer_date" value="{{ request('transfer_date') }}">
+                <input type="hidden" name="source_location_id" value="{{ $source_location_id }}">
                  @foreach($items as $item)
                     <input type="hidden" name="items[{{ $loop->index }}][id]" value="{{ $item->id }}">
                 @endforeach
@@ -70,8 +71,8 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $item->grade_idm_name }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->grade_idm_name }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->idmManagement->supplier->name ?? '-' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->weight }} Kg</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ number_format($item->total_price, 0, ',', '.') }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->weight }} g</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rp {{ number_format($item->total_price, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -84,24 +85,24 @@
                     <div class="w-full md:w-1/3">
                         <div class="bg-white shadow-sm border rounded-lg p-6">
                             <h4 class="text-lg font-medium text-gray-900 mb-4">Ringkasan Harga</h4>
-                            
+
                             <dl class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <dt class="text-sm text-gray-600">Total Harga IDM</dt>
+                                    <dd class="text-sm font-medium text-gray-900">{{ number_format($idmOnlyItems->sum('total_price'), 0, ',', '.') }}</dd>
+                                    <input type="hidden" name="total_idm_price" value="{{ $idmOnlyItems->sum('total_price') }}">
+                                </div>
+                                
                                 <div class="flex justify-between items-center">
                                     <dt class="text-sm text-gray-600">Rata Rata Harga IDM</dt>
                                     <dd class="text-sm font-medium text-gray-900">{{ number_format($averageIdmPrice, 0, ',', '.') }}</dd>
                                     <input type="hidden" name="average_idm_price" value="{{ $averageIdmPrice }}">
                                 </div>
-                                
+
                                 <div class="flex justify-between items-center">
                                     <dt class="text-sm text-gray-600">Total Harga Selain IDM</dt>
                                     <dd class="text-sm font-medium text-gray-900">{{ number_format($totalNonIdmPrice, 0, ',', '.') }}</dd>
                                     <input type="hidden" name="total_non_idm_price" value="{{ $totalNonIdmPrice }}">
-                                </div>
-
-                                <div class="flex justify-between items-center">
-                                    <dt class="text-sm text-gray-600">Total Harga IDM</dt>
-                                    <dd class="text-sm font-medium text-gray-900">{{ number_format($idmOnlyItems->sum('total_price'), 0, ',', '.') }}</dd>
-                                    <input type="hidden" name="total_idm_price" value="{{ $idmOnlyItems->sum('total_price') }}">
                                 </div>
 
                                 <div class="pt-3 border-t border-gray-200 flex justify-between items-center">

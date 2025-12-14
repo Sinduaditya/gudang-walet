@@ -31,11 +31,11 @@ class TrackingStockController extends Controller
     public function detail(Request $request, $id)
     {
         $grade = $this->trackingStockService->getGradeById($id);
-        $globalStock = $this->trackingStockService->calculateGlobalStock($id);
-
         $search = $request->input('search');
         $locationStocks = $this->trackingStockService->getStockPerLocation($id, $search);
-
+        
+        // Calculate global stock from the retrieved location stocks to ensure consistency
+        $globalStock = $locationStocks->sum('total_stock');
 
         Log::info('Location Stocks:', $locationStocks->toArray());
         return view('admin.stock.detail', compact('grade', 'globalStock', 'locationStocks', 'search'));

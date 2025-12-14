@@ -71,7 +71,7 @@ class InventoryTransaction extends Model
      */
     public function scopeOutgoing($query)
     {
-        return $query->whereIn('transaction_type', ['SALE_OUT', 'TRANSFER_OUT']);
+        return $query->whereIn('transaction_type', ['SALE_OUT', 'TRANSFER_OUT', 'IDM_TRANSFER_OUT']);
     }
 
     /**
